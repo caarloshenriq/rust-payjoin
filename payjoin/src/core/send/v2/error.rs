@@ -2,6 +2,11 @@ use core::fmt;
 
 use crate::ohttp::DirectoryResponseError;
 use crate::time::Time;
+#[cfg(feature = "std")]
+use std::error;
+
+#[cfg(not(feature = "std"))]
+use core::error;
 
 /// Error returned when request could not be created.
 ///
@@ -16,7 +21,10 @@ pub(crate) enum InternalCreateRequestError {
     Url(crate::into_url::Error),
     Hpke(crate::hpke::HpkeError),
     OhttpEncapsulation(crate::ohttp::OhttpEncapsulationError),
+    #[allow(dead_code)]
     Expired(Time),
+    #[allow(dead_code)]
+    Implementation(crate::error::ImplementationError),
 }
 
 impl fmt::Display for CreateRequestError {
@@ -28,12 +36,13 @@ impl fmt::Display for CreateRequestError {
             Hpke(e) => write!(f, "v2 error: {e}"),
             OhttpEncapsulation(e) => write!(f, "v2 error: {e}"),
             Expired(_expiration) => write!(f, "session expired"),
+            Implementation(e) => write!(f, "implementation error: {e}"),
         }
     }
 }
 
-impl std::error::Error for CreateRequestError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl error::Error for CreateRequestError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         use InternalCreateRequestError::*;
 
         match &self.0 {
@@ -41,6 +50,7 @@ impl std::error::Error for CreateRequestError {
             Hpke(error) => Some(error),
             OhttpEncapsulation(error) => Some(error),
             Expired(_) => None,
+            Implementation(e) => Some(e),
         }
     }
 }
@@ -60,11 +70,13 @@ impl From<crate::into_url::Error> for CreateRequestError {
 pub struct EncapsulationError(InternalEncapsulationError);
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub(crate) enum InternalEncapsulationError {
     /// The HPKE failed.
     Hpke(crate::hpke::HpkeError),
     /// The directory returned a bad response
     DirectoryResponse(DirectoryResponseError),
+    Implementation(crate::error::ImplementationError),
 }
 
 impl fmt::Display for EncapsulationError {
@@ -74,17 +86,19 @@ impl fmt::Display for EncapsulationError {
         match &self.0 {
             Hpke(error) => write!(f, "HPKE error: {error}"),
             DirectoryResponse(e) => write!(f, "Directory response error: {e}"),
+            Implementation(e) => write!(f, "implementation error: {e}"),
         }
     }
 }
 
-impl std::error::Error for EncapsulationError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl error::Error for EncapsulationError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         use InternalEncapsulationError::*;
 
         match &self.0 {
             Hpke(error) => Some(error),
             DirectoryResponse(e) => Some(e),
+            Implementation(e) => Some(e),
         }
     }
 }

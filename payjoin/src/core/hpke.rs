@@ -1,6 +1,13 @@
+#![cfg(any(feature = "v2", feature = "v2-ohttp"))]
 use core::fmt;
+#[cfg(feature = "std")]
 use std::error;
-use std::ops::Deref;
+
+#[cfg(not(feature = "std"))]
+use core::error;
+
+use core::ops::Deref;
+use alloc::vec::Vec;
 
 use bitcoin::key::constants::{ELLSWIFT_ENCODING_SIZE, PUBLIC_KEY_SIZE};
 use bitcoin::secp256k1;
@@ -191,17 +198,18 @@ pub fn encrypt_message_a(
     Ok(message_a)
 }
 
+// #[cfg(feature = "std")]
 pub fn decrypt_message_a(
     message_a: &[u8],
     receiver_sk: &HpkeSecretKey,
 ) -> Result<(Vec<u8>, HpkePublicKey), HpkeError> {
-    use std::io::{Cursor, Read};
+    if message_a.len() < ELLSWIFT_ENCODING_SIZE {
+        return Err(HpkeError::PayloadTooShort);
+    }
 
-    let mut cursor = Cursor::new(message_a);
+    let (enc_part, ciphertext_part) = message_a.split_at(ELLSWIFT_ENCODING_SIZE);
 
-    let mut enc_bytes = [0u8; ELLSWIFT_ENCODING_SIZE];
-    cursor.read_exact(&mut enc_bytes).map_err(|_| HpkeError::PayloadTooShort)?;
-    let enc = encapped_key_from_ellswift_bytes(&enc_bytes)?;
+    let enc = encapped_key_from_ellswift_bytes(enc_part)?;
 
     let mut decryption_ctx = hpke::setup_receiver::<
         ChaCha20Poly1305,
@@ -209,15 +217,16 @@ pub fn decrypt_message_a(
         SecpK256HkdfSha256,
     >(&OpModeR::Base, &receiver_sk.0, &enc, INFO_A)?;
 
-    let mut ciphertext = Vec::new();
-    cursor.read_to_end(&mut ciphertext).map_err(|_| HpkeError::PayloadTooShort)?;
-    let plaintext = decryption_ctx.open(&ciphertext, &[])?;
+    let plaintext = decryption_ctx.open(ciphertext_part, &[])?;
+
+    if plaintext.len() < PUBLIC_KEY_SIZE {
+        return Err(HpkeError::PayloadTooShort);
+    }
 
     let reply_pk = pubkey_from_compressed_bytes(&plaintext[..PUBLIC_KEY_SIZE])?;
+    let body = plaintext[PUBLIC_KEY_SIZE..].to_vec();
 
-    let body = &plaintext[PUBLIC_KEY_SIZE..];
-
-    Ok((body.to_vec(), reply_pk))
+    Ok((body, reply_pk))
 }
 
 /// Message B is sent from the receiver to the sender containing a Payjoin PSBT payload or an error
@@ -243,6 +252,8 @@ pub fn encrypt_message_b(
     Ok(message_b)
 }
 
+#[cfg(feature = "std")]
+#[allow(dead_code)]
 pub fn decrypt_message_b(
     message_b: &[u8],
     receiver_pk: HpkePublicKey,

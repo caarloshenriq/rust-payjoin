@@ -21,6 +21,8 @@ use bitcoin::{Amount, FeeRate, Script, ScriptBuf, TxOut, Weight};
 pub use error::{BuildSenderError, ResponseError, ValidationError, WellKnownError};
 pub(crate) use error::{InternalBuildSenderError, InternalProposalError, InternalValidationError};
 use url::Url;
+use alloc::vec::Vec;
+use alloc::string::ToString;
 
 use crate::output_substitution::OutputSubstitution;
 use crate::psbt::{AddressTypeError, PsbtExt, NON_WITNESS_INPUT_WEIGHT};
@@ -40,6 +42,7 @@ pub mod v1;
 #[cfg_attr(docsrs, doc(cfg(feature = "v2")))]
 pub mod v2;
 
+#[allow(dead_code)]
 type InternalResult<T> = Result<T, InternalProposalError>;
 
 /// A builder to construct the properties of a `PsbtContext`.
@@ -88,7 +91,7 @@ impl PsbtContextBuilder {
     ) -> Result<PsbtContext, BuildSenderError> {
         // TODO support optional batched payout scripts. This would require a change to
         // build() which now checks for a single payee.
-        let mut payout_scripts = std::iter::once(self.payee.clone());
+        let mut payout_scripts = core::iter::once(self.payee.clone());
 
         // Check if the PSBT is a sweep transaction with only one output that's a payout script and no change
         if self.psbt.unsigned_tx.output.len() == 1
@@ -245,6 +248,7 @@ macro_rules! check_eq {
     };
 }
 
+#[allow(dead_code)]
 fn ensure<T>(condition: bool, error: T) -> Result<(), T> {
     if !condition {
         return Err(error);
@@ -252,6 +256,7 @@ fn ensure<T>(condition: bool, error: T) -> Result<(), T> {
     Ok(())
 }
 
+#[allow(dead_code)]
 impl PsbtContext {
     fn process_proposal(self, mut proposal: Psbt) -> InternalResult<Psbt> {
         self.basic_checks(&proposal)?;
@@ -673,6 +678,10 @@ fn serialize_url(
 
 #[cfg(test)]
 mod test {
+    #![allow(unused_imports)]
+
+    use super::*;
+
     use bitcoin::absolute::LockTime;
     use bitcoin::bip32::{DerivationPath, Fingerprint};
     use bitcoin::ecdsa::Signature;
@@ -680,14 +689,16 @@ mod test {
     use bitcoin::secp256k1::{Message, PublicKey, Secp256k1, SecretKey, SECP256K1};
     use bitcoin::taproot::TaprootBuilder;
     use bitcoin::{Amount, FeeRate, OutPoint, Script, ScriptBuf, Sequence, Witness};
+
     use payjoin_test_utils::{
         BoxError, PARSED_ORIGINAL_PSBT, PARSED_PAYJOIN_PROPOSAL,
         PARSED_PAYJOIN_PROPOSAL_WITH_SENDER_INFO,
     };
     use url::Url;
 
-    use super::*;
+    // use crate::core::OutputSubstitution;
     use crate::output_substitution::OutputSubstitution;
+
     use crate::psbt::PsbtExt;
     use crate::send::{AdditionalFeeContribution, InternalBuildSenderError, InternalProposalError};
 
@@ -706,6 +717,7 @@ mod test {
         })
     }
 
+    #[cfg(feature = "v1")]
     #[test]
     fn test_restore_original_utxos() -> Result<(), BoxError> {
         let mut original_psbt = PARSED_ORIGINAL_PSBT.clone();
@@ -738,6 +750,7 @@ mod test {
         Ok(())
     }
 
+    #[cfg(feature = "v1")]
     #[test]
     fn test_restore_original_outputs() -> Result<(), BoxError> {
         let mut original_psbt = PARSED_ORIGINAL_PSBT.clone();

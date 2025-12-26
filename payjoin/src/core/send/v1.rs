@@ -212,11 +212,14 @@ impl V1Context {
         }
 
         let res_str = std::str::from_utf8(response).map_err(|_| InternalValidationError::Parse)?;
-        let proposal = Psbt::from_str(res_str).map_err(|_| ResponseError::parse(res_str))?;
+        let proposal = Psbt::from_str(res_str).map_err(|_| {
+            ResponseError::parse_from_str(res_str)
+                .unwrap_or_else(|_| InternalValidationError::Parse.into())
+        })?;
         self.psbt_context.process_proposal(proposal).map_err(Into::into)
     }
 }
-
+/*
 impl ResponseError {
     /// Parse a response from the receiver.
     ///
@@ -228,7 +231,7 @@ impl ResponseError {
         }
     }
 }
-
+*/
 #[cfg(test)]
 mod test {
     use std::collections::BTreeMap;

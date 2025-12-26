@@ -1,7 +1,15 @@
+#[cfg(feature = "std")]
+use std::error;
+
+#[cfg(not(feature = "std"))]
+use core::error;
+
+use alloc::fmt;
 #[derive(Debug)]
 pub struct PjParseError(pub(super) InternalPjParseError);
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub(super) enum InternalPjParseError {
     BadPjOs,
     DuplicateParams(&'static str),
@@ -18,8 +26,8 @@ impl From<InternalPjParseError> for PjParseError {
     fn from(value: InternalPjParseError) -> Self { PjParseError(value) }
 }
 
-impl std::error::Error for PjParseError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl error::Error for PjParseError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         use InternalPjParseError::*;
         match &self.0 {
             BadPjOs => None,
@@ -35,8 +43,8 @@ impl std::error::Error for PjParseError {
     }
 }
 
-impl std::fmt::Display for PjParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for PjParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use InternalPjParseError::*;
         match &self.0 {
             BadPjOs => write!(f, "Bad pjos parameter"),

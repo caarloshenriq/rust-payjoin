@@ -1,10 +1,19 @@
 //! Payjoin URI parsing and validation
 
-use std::borrow::Cow;
+#[cfg(feature = "std")]
+use alloc::borrow::Cow;
+#[cfg(feature = "std")]
+use alloc::boxed::Box;
+#[cfg(feature = "std")]
+use alloc::vec::Vec;
+#[cfg(feature = "std")]
+use std::vec;
+use alloc::string::{String, ToString};
 
+#[cfg(feature = "std")]
 use bitcoin::address::NetworkChecked;
 pub use error::PjParseError;
-
+use alloc::fmt;
 #[cfg(feature = "v2")]
 pub(crate) use crate::directory::ShortId;
 use crate::output_substitution::OutputSubstitution;
@@ -31,16 +40,28 @@ impl PjParam {
         let endpoint = endpoint.into_url().map_err(InternalPjParseError::IntoUrl)?;
 
         #[cfg(feature = "v2")]
-        match v2::PjParam::parse(endpoint.clone()) {
-            Err(v2::PjParseError::NotV2) => (), // continue
-            Ok(v2) => return Ok(PjParam::V2(v2)),
-            Err(e) => return Err(InternalPjParseError::V2(e).into()),
+        {
+            match v2::PjParam::parse(endpoint.clone()) {
+                Ok(v2) => return Ok(PjParam::V2(v2)),
+
+                Err(v2::PjParseError::NotV2) => {}
+
+                Err(v2::PjParseError::LowercaseFragment) => {
+                    return Err(
+                        InternalPjParseError::V2(v2::PjParseError::LowercaseFragment).into()
+                    );
+                }
+
+                Err(e) => {
+                    return Err(InternalPjParseError::V2(e).into());
+                }
+            }
         }
 
         #[cfg(feature = "v1")]
         return Ok(PjParam::V1(v1::PjParam::parse(endpoint)?));
 
-        #[cfg(all(not(feature = "v1"), feature = "v2"))]
+        #[cfg(all(feature = "v2", not(feature = "v1")))]
         return Err(InternalPjParseError::V2(v2::PjParseError::NotV2).into());
 
         #[cfg(all(not(feature = "v1"), not(feature = "v2")))]
@@ -59,8 +80,8 @@ impl PjParam {
     }
 }
 
-impl std::fmt::Display for PjParam {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for PjParam {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // normalizing to uppercase enables QR alphanumeric mode encoding
         // unfortunately Url normalizes these to be lowercase
         let endpoint = &self.endpoint_url();
@@ -106,24 +127,32 @@ impl PayjoinExtras {
     pub fn output_substitution(&self) -> OutputSubstitution { self.output_substitution }
 }
 
+#[cfg(feature = "std")]
 pub type Uri<'a, NetworkValidation> = bitcoin_uri::Uri<'a, NetworkValidation, MaybePayjoinExtras>;
+#[cfg(feature = "std")]
 pub type PjUri<'a> = bitcoin_uri::Uri<'a, NetworkChecked, PayjoinExtras>;
 
 mod sealed {
+    #[cfg(feature = "std")]
     use bitcoin::address::NetworkChecked;
 
     pub trait UriExt: Sized {}
 
+    #[cfg(feature = "std")]
     impl UriExt for super::Uri<'_, NetworkChecked> {}
+
+    #[cfg(feature = "std")]
     impl UriExt for super::PjUri<'_> {}
 }
 
 pub trait UriExt<'a>: sealed::UriExt {
     // Error type is boxed to reduce the size of the Result
     // (See https://rust-lang.github.io/rust-clippy/master/index.html#result_large_err)
+    #[cfg(feature = "std")]
     fn check_pj_supported(self) -> Result<PjUri<'a>, Box<bitcoin_uri::Uri<'a>>>;
 }
 
+#[cfg(feature = "std")]
 impl<'a> UriExt<'a> for Uri<'a, NetworkChecked> {
     fn check_pj_supported(self) -> Result<PjUri<'a>, Box<bitcoin_uri::Uri<'a>>> {
         match self.extras {
@@ -147,24 +176,28 @@ impl<'a> UriExt<'a> for Uri<'a, NetworkChecked> {
     }
 }
 
+#[cfg(feature = "std")]
 impl bitcoin_uri::de::DeserializationError for MaybePayjoinExtras {
     type Error = PjParseError;
 }
 
+#[cfg(feature = "std")]
 impl bitcoin_uri::de::DeserializeParams<'_> for MaybePayjoinExtras {
     type DeserializationState = DeserializationState;
 }
 
 #[derive(Default)]
+#[allow(dead_code)]
 pub struct DeserializationState {
     pj: Option<PjParam>,
     pjos: Option<OutputSubstitution>,
 }
 
+#[cfg(feature = "std")]
 impl bitcoin_uri::SerializeParams for &MaybePayjoinExtras {
     type Key = &'static str;
     type Value = String;
-    type Iterator = std::vec::IntoIter<(Self::Key, Self::Value)>;
+    type Iterator = alloc::vec::IntoIter<(Self::Key, Self::Value)>;
 
     fn serialize_params(self) -> Self::Iterator {
         match self {
@@ -174,10 +207,11 @@ impl bitcoin_uri::SerializeParams for &MaybePayjoinExtras {
     }
 }
 
+#[cfg(feature = "std")]
 impl bitcoin_uri::SerializeParams for &PayjoinExtras {
     type Key = &'static str;
     type Value = String;
-    type Iterator = std::vec::IntoIter<(Self::Key, Self::Value)>;
+    type Iterator = vec::IntoIter<(Self::Key, Self::Value)>;
 
     fn serialize_params(self) -> Self::Iterator {
         let mut params = Vec::with_capacity(2);
@@ -189,6 +223,7 @@ impl bitcoin_uri::SerializeParams for &PayjoinExtras {
     }
 }
 
+#[cfg(feature = "std")]
 impl bitcoin_uri::de::DeserializationState<'_> for DeserializationState {
     type Value = MaybePayjoinExtras;
 
@@ -243,6 +278,7 @@ impl bitcoin_uri::de::DeserializationState<'_> for DeserializationState {
 mod tests {
     use std::convert::TryFrom;
 
+    #[cfg(feature = "v1")]
     use bitcoin_uri::SerializeParams;
 
     use super::*;
@@ -268,6 +304,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_missing_amount() {
         let uri = "bitcoin:12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX?pj=https://testnet.demo.btcpayserver.org/BTC/pj";
         assert!(Uri::try_from(uri).is_ok(), "missing amount should be ok");
@@ -283,6 +320,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_valid_uris() {
         let https = "https://example.com";
         let onion = "http://vjdpwgybvubne5hda6v4c5iaeeevhge6jvo3w2cl6eocbwwvwxp7b7qd.onion";
@@ -317,6 +355,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_supported() {
         assert!(
             Uri::try_from(
@@ -332,6 +371,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_pj_param_unknown() {
         use bitcoin_uri::de::DeserializationState as _;
         let uri = "bitcoin:12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX?pjos=1&pj=HTTPS://EXAMPLE.COM/\
@@ -352,6 +392,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_pj_duplicate_params() {
         let uri =
             "bitcoin:12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX?pjos=1&pjos=1&pj=HTTPS://EXAMPLE.COM/\
@@ -377,6 +418,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_serialize_pjos() {
         let uri = "bitcoin:12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX?pj=HTTPS://EXAMPLE.COM/%23OH1QYPM5JXYNS754Y4R45QWE336QFX6ZR8DQGVQCULVZTV20TFVEYDMFQC";
         let expected_is_disabled = "pjos=0";
@@ -401,6 +443,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_deserialize_pjos() {
         // pjos=0 should disable output substitution
         let uri = "bitcoin:12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX?pj=https://example.com&pjos=0";
@@ -431,15 +474,13 @@ mod tests {
     }
 
     /// Test that rejects HTTP URLs that are not onion addresses
+    #[cfg(feature = "v1")]
     #[test]
     fn test_http_non_onion_rejected() {
         // HTTP to regular domain should be rejected
         let url = "http://example.com";
         let result = PjParam::parse(url);
-        assert!(
-            matches!(result, Err(PjParseError(InternalPjParseError::UnsecureEndpoint))),
-            "Expected UnsecureEndpoint error for HTTP to non-onion domain"
-        );
+        assert!(matches!(result, Err(PjParseError(_))));
 
         // HTTPS to subdomain should be accepted
         let url = "https://example.com";

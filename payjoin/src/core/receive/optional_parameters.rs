@@ -1,6 +1,12 @@
-use std::borrow::Borrow;
-use std::fmt;
+use core::borrow::Borrow;
+use core::fmt;
+use alloc::string::String;
 
+#[cfg(feature = "std")]
+use std::error;
+
+#[cfg(not(feature = "std"))]
+use core::error;
 use bitcoin::FeeRate;
 use tracing::warn;
 
@@ -138,8 +144,8 @@ impl fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> { None }
+impl error::Error for Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> { None }
 }
 
 #[cfg(test)]

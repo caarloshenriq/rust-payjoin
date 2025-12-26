@@ -1,8 +1,14 @@
+#[cfg(not(feature = "std"))]
+use alloc::vec;
 use crate::error::{InternalReplayError, ReplayError};
-use crate::persist::{AsyncSessionPersister, SessionPersister};
+use crate::persist::SessionPersister;
 use crate::send::v2::{SendSession, SessionContext};
 use crate::uri::v2::PjParam;
 use crate::ImplementationError;
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+#[cfg(feature = "std")]
+use crate::persist::AsyncSessionPersister;
 
 fn replay_events(
     mut logs: impl Iterator<Item = SessionEvent>,
@@ -25,9 +31,12 @@ fn construct_history(
     session_events: Vec<SessionEvent>,
 ) -> Result<SessionHistory, ReplayError<SendSession, SessionEvent>> {
     let history = SessionHistory::new(session_events);
-    let pj_param = history.pj_param();
-    if pj_param.expiration().elapsed() {
-        return Err(InternalReplayError::Expired(pj_param.expiration()).into());
+    #[cfg(feature = "std")]
+    {
+        let pj_param = history.pj_param();
+        if pj_param.expiration().elapsed() {
+            return Err(InternalReplayError::Expired(pj_param.expiration()).into());
+        }
     }
     Ok(history)
 }
@@ -61,6 +70,8 @@ where
 }
 
 /// Async version of [replay_event_log]
+#[cfg(feature = "std")]
+#[allow(dead_code)]
 pub async fn replay_event_log_async<P>(
     persister: &P,
 ) -> Result<(SendSession, SessionHistory), ReplayError<SendSession, SessionEvent>>
@@ -73,8 +84,7 @@ where
         .load()
         .await
         .map_err(|e| InternalReplayError::PersistenceFailure(ImplementationError::new(e)))?;
-
-    let (sender, session_events) = match replay_events(logs.map(|e| e.into())) {
+    let (sender, session_events) = match replay_events(logs.map(|e: P::SessionEvent| e.into())) {
         Ok(r) => r,
         Err(e) => {
             persister.close().await.map_err(|ce| {
@@ -83,7 +93,6 @@ where
             return Err(e);
         }
     };
-
     let history = construct_history(session_events)?;
     Ok((sender, history))
 }
@@ -123,8 +132,12 @@ impl SessionHistory {
     }
 
     pub fn status(&self) -> SessionStatus {
-        if self.pj_param().expiration().elapsed() {
-            return SessionStatus::Expired;
+        #[cfg(feature = "std")]
+        {
+            let pj_param = self.pj_param();
+            if pj_param.expiration().elapsed() {
+                return SessionStatus::Expired;
+            }
         }
 
         match self.events.last() {

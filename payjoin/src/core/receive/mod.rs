@@ -9,8 +9,14 @@
 //! If you specifically need to use
 //! version 1, refer to the `receive::v1` module documentation after enabling the `v1` feature.
 
-use std::collections::BTreeMap;
-use std::str::FromStr;
+#[cfg(not(feature = "std"))]
+use alloc::{format, vec};
+use alloc::vec::Vec;
+use alloc::collections::BTreeMap;
+use core::str::FromStr;
+
+pub mod common;
+
 
 use bitcoin::transaction::InputWeightPrediction;
 use bitcoin::{
@@ -18,9 +24,12 @@ use bitcoin::{
 };
 pub(crate) use error::InternalPayloadError;
 pub use error::{
-    Error, InputContributionError, JsonReply, OutputSubstitutionError, PayloadError, ProtocolError,
+    Error, InputContributionError, OutputSubstitutionError, PayloadError, ProtocolError,
     SelectionError,
 };
+#[cfg(feature = "std")]
+pub use error::JsonReply;
+
 use optional_parameters::Params;
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +46,6 @@ const DEFAULT_SIGHASH_KEY_SPEND_INPUT_WEIGHT: Weight = Weight::from_wu(
         + NON_WITNESS_INPUT_WEIGHT.to_wu(),
 );
 
-pub(crate) mod common;
 mod error;
 pub(crate) mod optional_parameters;
 
@@ -229,6 +237,7 @@ impl<'a> From<&'a InputPair> for InternalInputPair<'a> {
 }
 
 /// Validate the payload of a Payjoin request for PSBT and Params sanity
+#[allow(dead_code)]
 pub(crate) fn parse_payload(
     base64: &str,
     query: &str,
@@ -395,7 +404,7 @@ impl OriginalPayload {
             .psbt
             .input_pairs()
             .scan(&mut err, |err, input| match input.previous_txout() {
-                Ok(txout) => Some(txout.script_pubkey.to_owned()),
+                Ok(txout) => Some(txout.script_pubkey.clone()),
                 Err(e) => {
                     **err = Err(InternalPayloadError::PrevTxOut(e).into());
                     None

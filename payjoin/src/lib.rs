@@ -31,11 +31,20 @@
 //! [`Sender`]: crate::send::v2::Sender
 //! [`Receiver`]: crate::receive::v2::Receiver
 
-#[cfg(not(any(feature = "directory", feature = "v1", feature = "v2")))]
-compile_error!("At least one of the features ['directory', 'v1', 'v2'] must be enabled");
+#[cfg(feature = "alloc")]
+extern crate alloc;
 
-#[cfg(any(feature = "v2", feature = "directory"))]
+#[cfg(not(any(
+    feature = "_core",
+    feature = "directory",
+    feature = "v1",
+    feature = "v2"
+)))]
+compile_error!("At least one of the features ['_core', 'directory', 'v1', 'v2'] must be enabled");
+
+#[cfg(feature = "_core")]
 pub(crate) mod bech32;
+
 #[cfg(feature = "directory")]
 #[cfg_attr(docsrs, doc(cfg(feature = "directory")))]
 pub mod directory;

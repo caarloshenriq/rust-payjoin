@@ -1,4 +1,7 @@
+use alloc::string::String;
+use alloc::vec::Vec;
 use url::Url;
+use crate::alloc::string::ToString;
 #[cfg(feature = "v1")]
 const V1_REQ_CONTENT_TYPE: &str = "text/plain";
 
