@@ -4,11 +4,13 @@ use alloc::collections::BTreeMap;
 use core::str::FromStr;
 
 use bitcoin::bech32::Hrp;
+#[cfg(feature = "v2-std")]
 use url::Url;
 use alloc::vec::Vec;
 use alloc::fmt;
 #[cfg(feature = "std")]
-use std::error;
+#[cfg(not(feature = "std"))]
+use core::error;
 use crate::alloc::string::ToString;
 
 #[cfg(not(feature = "std"))]

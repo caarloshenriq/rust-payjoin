@@ -1,4 +1,5 @@
 //! Payjoin URI parsing and validation
+#![allow(unused_imports)]
 
 #[cfg(feature = "std")]
 use alloc::borrow::Cow;
@@ -6,6 +7,9 @@ use alloc::borrow::Cow;
 use alloc::boxed::Box;
 #[cfg(feature = "std")]
 use alloc::vec::Vec;
+#[cfg(feature = "std")]
+#[cfg(not(feature = "std"))]
+use alloc::vec;
 #[cfg(feature = "std")]
 use std::vec;
 use alloc::string::{String, ToString};
@@ -23,6 +27,7 @@ mod error;
 #[cfg(feature = "v1")]
 pub mod v1;
 #[cfg(feature = "v2")]
+#[cfg(feature = "v2-std")]
 pub mod v2;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -31,15 +36,16 @@ pub mod v2;
 pub enum PjParam {
     #[cfg(feature = "v1")]
     V1(v1::PjParam),
-    #[cfg(feature = "v2")]
+    #[cfg(feature = "v2-std")]
     V2(v2::PjParam),
 }
 
 impl PjParam {
+    #[cfg(feature = "v2-std")]
     pub fn parse(endpoint: impl super::IntoUrl) -> Result<Self, PjParseError> {
         let endpoint = endpoint.into_url().map_err(InternalPjParseError::IntoUrl)?;
 
-        #[cfg(feature = "v2")]
+        #[cfg(feature = "v2-std")]
         {
             match v2::PjParam::parse(endpoint.clone()) {
                 Ok(v2) => return Ok(PjParam::V2(v2)),
@@ -61,15 +67,17 @@ impl PjParam {
         #[cfg(feature = "v1")]
         return Ok(PjParam::V1(v1::PjParam::parse(endpoint)?));
 
-        #[cfg(all(feature = "v2", not(feature = "v1")))]
+        #[cfg(all(feature = "v2-std", not(feature = "v1")))]
         return Err(InternalPjParseError::V2(v2::PjParseError::NotV2).into());
 
         #[cfg(all(not(feature = "v1"), not(feature = "v2")))]
         compile_error!("Either v1 or v2 feature must be enabled");
     }
 
+    #[cfg(feature = "v2-std")]
     pub fn endpoint(&self) -> String { self.endpoint_url().to_string() }
 
+    #[cfg(feature = "v2-std")]
     pub(crate) fn endpoint_url(&self) -> url::Url {
         match self {
             #[cfg(feature = "v1")]
@@ -80,6 +88,7 @@ impl PjParam {
     }
 }
 
+#[cfg(feature = "v2-std")]
 impl fmt::Display for PjParam {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // normalizing to uppercase enables QR alphanumeric mode encoding
@@ -123,6 +132,7 @@ pub struct PayjoinExtras {
 
 impl PayjoinExtras {
     pub fn pj_param(&self) -> &PjParam { &self.pj_param }
+    #[cfg(feature = "v2-std")]
     pub fn endpoint(&self) -> String { self.pj_param.endpoint() }
     pub fn output_substitution(&self) -> OutputSubstitution { self.output_substitution }
 }
