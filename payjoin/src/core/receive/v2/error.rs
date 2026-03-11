@@ -1,7 +1,9 @@
 use core::fmt;
 use core::error;
 
+#[cfg(feature = "v2-std")]
 use crate::hpke::HpkeError;
+#[cfg(feature = "v2-std")]
 use crate::ohttp::{DirectoryResponseError, OhttpEncapsulationError};
 use crate::receive::error::Error;
 use crate::receive::ProtocolError;

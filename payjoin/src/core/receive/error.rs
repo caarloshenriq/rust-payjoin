@@ -3,9 +3,6 @@ use core::fmt;
 #[cfg(feature = "std")]
 use alloc::string::String;
 
-#[cfg(feature = "std")]
-use std::error;
-
 #[cfg(not(feature = "std"))]
 use core::error;
 
@@ -74,7 +71,7 @@ pub enum ProtocolError {
     /// Protocol-specific errors for BIP-78 v1 requests (e.g. HTTP request validation, parameter checks)
     #[cfg(feature = "v1")]
     V1(crate::receive::v1::RequestError),
-    #[cfg(feature = "v2")]
+    #[cfg(feature = "v2-std")]
     /// V2-specific errors that are infeasable to reply to the sender
     V2(crate::receive::v2::SessionError),
 }
@@ -154,7 +151,7 @@ impl fmt::Display for ProtocolError {
             Self::OriginalPayload(e) => e.fmt(f),
             #[cfg(feature = "v1")]
             Self::V1(e) => e.fmt(f),
-            #[cfg(feature = "v2")]
+            #[cfg(feature = "v2-std")]
             Self::V2(e) => e.fmt(f),
         }
     }
@@ -205,6 +202,7 @@ pub(crate) enum InternalPayloadError {
     /// The payload is not valid utf-8
     Utf8(core::str::Utf8Error),
     /// The payload is not a valid PSBT
+     #[cfg(feature = "std")]
     ParsePsbt(bitcoin::psbt::PsbtParseError),
     /// Invalid sender parameters
     SenderParams(super::optional_parameters::Error),
@@ -275,6 +273,7 @@ impl fmt::Display for InternalPayloadError {
 
         match &self {
             Utf8(e) => write!(f, "{e}"),
+            #[cfg(feature = "std")]
             ParsePsbt(e) => write!(f, "{e}"),
             SenderParams(e) => write!(f, "{e}"),
             InconsistentPsbt(e) => write!(f, "{e}"),

@@ -8,6 +8,7 @@
 //!
 //! If you specifically need to use
 //! version 1, refer to the `receive::v1` module documentation after enabling the `v1` feature.
+#![allow(unused_imports)]
 
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec};
@@ -55,6 +56,7 @@ pub mod v1;
 
 #[cfg(feature = "v2")]
 #[cfg_attr(docsrs, doc(cfg(feature = "v2")))]
+#[cfg(feature = "v2-std")]
 pub mod v2;
 
 /// A pair of ([`TxIn`], [`psbt::Input`]) with some built-in validation.
@@ -238,6 +240,7 @@ impl<'a> From<&'a InputPair> for InternalInputPair<'a> {
 
 /// Validate the payload of a Payjoin request for PSBT and Params sanity
 #[allow(dead_code)]
+#[cfg(feature = "v2-std")]
 pub(crate) fn parse_payload(
     base64: &str,
     query: &str,
@@ -361,6 +364,7 @@ pub struct OriginalPayload {
 
 impl OriginalPayload {
     // Calculates the fee rate of the original proposal PSBT.
+    #[cfg(feature = "std")]
     fn psbt_fee_rate(&self) -> Result<FeeRate, InternalPayloadError> {
         let original_psbt_fee = self.psbt.fee().map_err(|e| {
             InternalPayloadError::ParsePsbt(bitcoin::psbt::PsbtParseError::PsbtEncoding(e))
@@ -368,6 +372,7 @@ impl OriginalPayload {
         Ok(original_psbt_fee / self.psbt.clone().extract_tx_unchecked_fee_rate().weight())
     }
 
+    #[cfg(feature = "std")]
     pub fn check_broadcast_suitability(
         &self,
         min_fee_rate: Option<FeeRate>,

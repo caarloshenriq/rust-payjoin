@@ -3,7 +3,8 @@ use core::fmt;
 use alloc::string::String;
 
 #[cfg(feature = "std")]
-use std::error;
+#[cfg(not(feature = "std"))]
+use core::error;
 
 #[cfg(not(feature = "std"))]
 use core::error;
@@ -105,7 +106,7 @@ impl Params {
                             // TODO Parse with serde when rust-bitcoin supports it
                             let fee_rate_sat_per_kwu = fee_rate_sat_per_vb * 250.0_f32;
                             // since it's a minimum, we want to round up
-                            FeeRate::from_sat_per_kwu(fee_rate_sat_per_kwu.ceil() as u64)
+                            FeeRate::from_sat_per_kwu((fee_rate_sat_per_kwu + 0.9999) as u64)
                         }
                         Err(_) => return Err(Error::FeeRate),
                     },
