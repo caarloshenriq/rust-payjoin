@@ -30,6 +30,9 @@
 //!
 //! [`Sender`]: crate::send::v2::Sender
 //! [`Receiver`]: crate::receive::v2::Receiver
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), allow(dead_code))]
+
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
