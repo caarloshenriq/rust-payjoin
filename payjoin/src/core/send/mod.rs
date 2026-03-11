@@ -20,12 +20,15 @@ use bitcoin::psbt::Psbt;
 use bitcoin::{Amount, FeeRate, Script, ScriptBuf, TxOut, Weight};
 pub use error::{BuildSenderError, ResponseError, ValidationError, WellKnownError};
 pub(crate) use error::{InternalBuildSenderError, InternalProposalError, InternalValidationError};
+#[cfg(feature = "v2-std")]
 use url::Url;
 use alloc::vec::Vec;
+#[cfg(feature = "v2-std")]
 use alloc::string::ToString;
 
 use crate::output_substitution::OutputSubstitution;
 use crate::psbt::{AddressTypeError, PsbtExt, NON_WITNESS_INPUT_WEIGHT};
+#[cfg(feature = "v2-std")]
 use crate::Version;
 
 // See usize casts
@@ -651,6 +654,7 @@ fn determine_fee_contribution(
     })
 }
 
+#[cfg(feature = "v2-std")]
 fn serialize_url(
     endpoint: Url,
     output_substitution: OutputSubstitution,
@@ -694,7 +698,8 @@ mod test {
         BoxError, PARSED_ORIGINAL_PSBT, PARSED_PAYJOIN_PROPOSAL,
         PARSED_PAYJOIN_PROPOSAL_WITH_SENDER_INFO,
     };
-    use url::Url;
+#[cfg(feature = "v2-std")]
+use url::Url;
 
     // use crate::core::OutputSubstitution;
     use crate::output_substitution::OutputSubstitution;

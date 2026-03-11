@@ -4,16 +4,14 @@ use core::fmt;
 use bitcoin::locktime::absolute::LockTime;
 use bitcoin::transaction::Version;
 use bitcoin::Sequence;
+#[cfg(not(feature = "std"))]
+use core::error;
 #[cfg(feature = "std")]
-use std::error;
-#[cfg(feature = "std")]
-use std::str::FromStr;
+use core::str::FromStr;
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
-#[cfg(not(feature = "std"))]
-use core::error;
 use crate::error_codes::ErrorCode;
 
 /// Error building a Sender from a SenderBuilder.

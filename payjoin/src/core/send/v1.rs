@@ -21,7 +21,7 @@
 //! [`bitmask-core`](https://github.com/diba-io/bitmask-core) BDK integration. Bring your own
 //! wallet and http client.
 
-use std::str::FromStr;
+use core::str::FromStr;
 
 use bitcoin::psbt::Psbt;
 use bitcoin::{Address, Amount, FeeRate};

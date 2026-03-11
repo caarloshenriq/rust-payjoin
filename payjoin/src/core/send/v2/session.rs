@@ -1,8 +1,11 @@
+#![allow(unused_imports)]
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 use crate::error::{InternalReplayError, ReplayError};
 use crate::persist::SessionPersister;
+#[cfg(feature = "v2-std")]
 use crate::send::v2::{SendSession, SessionContext};
+#[cfg(feature = "v2-std")]
 use crate::uri::v2::PjParam;
 use crate::ImplementationError;
 use alloc::boxed::Box;
@@ -10,6 +13,7 @@ use alloc::vec::Vec;
 #[cfg(feature = "std")]
 use crate::persist::AsyncSessionPersister;
 
+#[cfg(feature = "v2-std")]
 fn replay_events(
     mut logs: impl Iterator<Item = SessionEvent>,
 ) -> Result<(SendSession, Vec<SessionEvent>), ReplayError<SendSession, SessionEvent>> {
@@ -27,6 +31,7 @@ fn replay_events(
     Ok((sender, session_events))
 }
 
+#[cfg(feature = "v2-std")]
 fn construct_history(
     session_events: Vec<SessionEvent>,
 ) -> Result<SessionHistory, ReplayError<SendSession, SessionEvent>> {
@@ -43,6 +48,7 @@ fn construct_history(
 
 /// Replay a sender event log to get the sender in its current state [SendSession]
 /// and a session history [SessionHistory]
+#[cfg(feature = "v2-std")]
 pub fn replay_event_log<P>(
     persister: &P,
 ) -> Result<(SendSession, SessionHistory), ReplayError<SendSession, SessionEvent>>
@@ -97,11 +103,13 @@ where
     Ok((sender, history))
 }
 
+#[cfg(feature = "v2-std")]
 #[derive(Debug, Clone)]
 pub struct SessionHistory {
     events: Vec<SessionEvent>,
 }
 
+#[cfg(feature = "v2-std")]
 impl SessionHistory {
     pub(crate) fn new(events: Vec<SessionEvent>) -> Self {
         debug_assert!(!events.is_empty(), "Session event log must contain at least one event");
@@ -160,6 +168,7 @@ pub enum SessionStatus {
     Completed,
 }
 
+#[cfg(feature = "v2-std")]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SessionEvent {
     /// Sender was created with session data

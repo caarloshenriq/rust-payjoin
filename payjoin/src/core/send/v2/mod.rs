@@ -27,6 +27,7 @@
 //! as it allows the relay to correlate requests by comparing ciphertexts.
 //! Note: Even fresh requests may be linkable via metadata (e.g. client IP, request timing),
 //! but request reuse makes correlation trivial for the relay.
+#![allow(unused_imports)]
 
 #[cfg(not(feature = "std"))]
 use alloc::format;
@@ -34,11 +35,15 @@ use bitcoin::hashes::{sha256, Hash};
 use bitcoin::Address;
 pub use error::{CreateRequestError, EncapsulationError};
 use error::{InternalCreateRequestError, InternalEncapsulationError};
+#[cfg(feature = "v2-std")]
+#[cfg(feature = "v2-std")]
 use ohttp::ClientResponse;
 use serde::{Deserialize, Serialize};
-#[cfg(all(feature = "std", feature = "v2-ohttp"))]
+#[cfg(feature = "v2-std")]
 use crate::ohttp::{ohttp_encapsulate, process_get_res, process_post_res};
+#[cfg(feature = "v2-std")]
 pub use session::{replay_event_log, SessionEvent, SessionHistory, SessionOutcome, SessionStatus};
+#[cfg(feature = "v2-std")]
 use url::Url;
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -47,15 +52,18 @@ use alloc::string::ToString;
 use super::error::BuildSenderError;
 use super::*;
 use crate::error::{InternalReplayError, ReplayError};
+#[cfg(feature = "v2-std")]
 use crate::hpke::{encrypt_message_a, HpkeSecretKey};
 
-#[cfg(all(feature = "std", feature = "v2-ohttp"))]
+#[cfg(feature = "v2-std")]
 use crate::hpke::decrypt_message_b;
 use crate::persist::{
     MaybeFatalTransition, MaybeSuccessTransitionWithNoResults, NextStateTransition,
 };
+#[cfg(feature = "v2-std")]
 use crate::uri::v2::PjParam;
 use crate::uri::ShortId;
+#[cfg(feature = "v2-std")]
 use crate::{HpkeKeyPair, IntoUrl, Request};
 #[cfg(feature = "std")]
 use crate::core::uri::PjUri;
@@ -68,6 +76,7 @@ mod session;
 /// This is because all communications with the receiver are end-to-end authenticated. So a
 /// malicious man in the middle can't substitute outputs, only the receiver can.
 /// The receiver can always choose not to substitute outputs, however.
+#[cfg(feature = "v2-std")]
 #[derive(Clone)]
 pub struct SenderBuilder {
     pj_param: crate::uri::v2::PjParam,
@@ -75,6 +84,7 @@ pub struct SenderBuilder {
     psbt_ctx_builder: PsbtContextBuilder,
 }
 
+#[cfg(feature = "v2-std")]
 impl SenderBuilder {
     /// Prepare the context from which to make Sender requests
     ///
@@ -202,12 +212,14 @@ mod sealed {
 /// can implement this trait, ensuring type safety and protocol integrity.
 pub trait State: sealed::State {}
 
+#[cfg(feature = "v2-std")]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Sender<State> {
     pub(crate) state: State,
     pub(crate) session_context: SessionContext,
 }
 
+#[cfg(feature = "v2-std")]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SessionContext {
     /// The endpoint in the Payjoin URI
@@ -218,6 +230,7 @@ pub struct SessionContext {
     pub(crate) reply_key: HpkeSecretKey,
 }
 
+#[cfg(feature = "v2-std")]
 impl SessionContext {
     fn full_relay_url(&self, ohttp_relay: impl IntoUrl) -> Result<Url, InternalCreateRequestError> {
         let relay_base = ohttp_relay.into_url().map_err(InternalCreateRequestError::Url)?;
@@ -236,16 +249,19 @@ impl SessionContext {
     }
 }
 
+#[cfg(feature = "v2-std")]
 impl<State> core::ops::Deref for Sender<State> {
     type Target = State;
 
     fn deref(&self) -> &Self::Target { &self.state }
 }
 
+#[cfg(feature = "v2-std")]
 impl<State> core::ops::DerefMut for Sender<State> {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.state }
 }
 
+#[cfg(feature = "v2-std")]
 impl<State> Sender<State> {
     /// The endpoint in the Payjoin URI
     pub fn endpoint(&self) -> String { self.session_context.pj_param.endpoint().to_string() }
@@ -255,6 +271,7 @@ impl<State> Sender<State> {
 ///
 /// This provides type erasure for the send session state, allowing the session to be replayed
 /// and the state to be updated with the next event over a uniform interface.
+#[cfg(feature = "v2-std")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SendSession {
     WithReplyKey(Sender<WithReplyKey>),
@@ -262,6 +279,7 @@ pub enum SendSession {
     Closed(SessionOutcome),
 }
 
+#[cfg(feature = "v2-std")]
 impl SendSession {
     fn new(session_context: SessionContext) -> Self {
         SendSession::WithReplyKey(Sender { state: WithReplyKey, session_context })
@@ -293,6 +311,7 @@ impl SendSession {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WithReplyKey;
 
+#[cfg(feature = "v2-std")]
 impl Sender<WithReplyKey> {
     fn new(pj_param: PjParam, psbt_ctx: PsbtContext) -> Self {
         Sender {
@@ -435,6 +454,7 @@ pub(crate) fn extract_request(
     Ok((request, ohttp_ctx))
 }
 
+#[cfg(feature = "v2-std")]
 pub(crate) fn serialize_v2_body(
     psbt: &Psbt,
     output_substitution: OutputSubstitution,
@@ -467,6 +487,7 @@ impl ResponseError {
     }
 }
 
+#[cfg(feature = "v2-std")]
 impl Sender<PollingForProposal> {
     /// Construct an OHTTP Encapsulated HTTP GET request for the Proposal PSBT
     pub fn create_poll_request(
@@ -638,7 +659,6 @@ impl Sender<PollingForProposal> {
     }
 }
 
-}
 
 #[cfg(test)]
 mod test {
