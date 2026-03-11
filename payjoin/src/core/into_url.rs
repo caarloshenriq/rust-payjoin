@@ -1,3 +1,4 @@
+#[cfg(feature = "v2-std")]
 use url::{ParseError, Url};
 use core::fmt;
 use core::error;

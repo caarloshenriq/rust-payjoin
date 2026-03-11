@@ -1,7 +1,7 @@
 #![cfg(any(feature = "v2", feature = "v2-ohttp"))]
 use core::fmt;
-#[cfg(feature = "std")]
-use std::error;
+#[cfg(not(feature = "std"))]
+use core::error;
 
 #[cfg(not(feature = "std"))]
 use core::error;

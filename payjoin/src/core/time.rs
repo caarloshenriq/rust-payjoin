@@ -5,9 +5,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 #[cfg(not(feature = "std"))]
 use core::time::Duration;
 
-#[cfg(feature = "std")]
-use std::error;
-
 #[cfg(not(feature = "std"))]
 use core::error;
 

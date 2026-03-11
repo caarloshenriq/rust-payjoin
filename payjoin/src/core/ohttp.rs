@@ -1,8 +1,8 @@
 use core::ops::{Deref, DerefMut};
 use core::fmt;
 use crate::alloc::string::ToString;
-#[cfg(feature = "std")]
-use std::error;
+#[cfg(not(feature = "std"))]
+use core::error;
 #[cfg(not(feature = "std"))]
 use core::error;
 use alloc::vec::Vec;
