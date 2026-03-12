@@ -3,7 +3,7 @@ use alloc::vec;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
-
+use crate::PjUri;
 use super::{ReceiveSession, SessionContext};
 use crate::error::{InternalReplayError, ReplayError};
 #[cfg(feature = "v1")]
@@ -148,12 +148,12 @@ impl SessionHistory {
 
     /// Receiver session Payjoin URI
     #[cfg(feature = "v1")]
-    pub fn pj_uri<'a>(&self) -> PjUri<'a> {
+    pub fn pj_uri<'a>(&'a self) -> PjUri<'a> {
         self.events
             .iter()
             .find_map(|event| match event {
                 SessionEvent::Created(session_context) =>
-                    Some(crate::receive::v2::pj_uri(session_context, OutputSubstitution::Disabled)),
+                    Some(crate::receive::v2::pj_uri(session_context)),
                 _ => None,
             })
             .expect("Session event log must contain at least one event with pj_uri")

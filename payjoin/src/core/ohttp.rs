@@ -3,8 +3,8 @@ use core::fmt;
 use crate::alloc::string::ToString;
 #[cfg(not(feature = "std"))]
 use core::error;
-#[cfg(not(feature = "std"))]
-use core::error;
+#[cfg(feature = "std")]
+use std::error;
 use alloc::vec::Vec;
 use alloc::vec;
 

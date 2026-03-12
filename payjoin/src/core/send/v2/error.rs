@@ -3,6 +3,8 @@ use core::fmt;
 #[cfg(feature = "v2-std")]
 use crate::ohttp::DirectoryResponseError;
 use crate::time::Time;
+#[cfg(feature = "std")]
+use std::error;
 #[cfg(not(feature = "std"))]
 use core::error;
 

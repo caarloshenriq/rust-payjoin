@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use alloc::string::String;
 use alloc::vec::Vec;
-#[cfg(feature = "v2-std")]
+#[cfg(any(feature = "v1", feature = "v2-std"))]
 use url::Url;
 use crate::alloc::string::ToString;
 #[cfg(feature = "v1")]

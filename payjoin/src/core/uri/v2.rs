@@ -8,13 +8,11 @@ use bitcoin::bech32::Hrp;
 use url::Url;
 use alloc::vec::Vec;
 use alloc::fmt;
+#[cfg(not(feature = "std"))]
+use core::error;
 #[cfg(feature = "std")]
-#[cfg(not(feature = "std"))]
-use core::error;
+use std::error;
 use crate::alloc::string::ToString;
-
-#[cfg(not(feature = "std"))]
-use core::error;
 use crate::hpke::HpkePublicKey;
 use crate::ohttp::OhttpKeys;
 use crate::time::{ParseTimeError, Time};
@@ -130,19 +128,15 @@ impl PjParam {
             _ => return Err(PjParseError::NotV2),
         };
 
-        // MUDANÇA: Se tem short_id válido, verifica lowercase ANTES de verificar parâmetros
         let has_valid_short_id =
             non_empty_segments.len() == 1 && ShortId::from_str(non_empty_segments[0]).is_ok();
 
         if has_valid_short_id {
-            // Se tem short_id válido, assume que é tentativa de V2
-            // Rejeita lowercase imediatamente
             if fragment.chars().any(|c| c.is_lowercase()) {
                 return Err(PjParseError::LowercaseFragment);
             }
         }
 
-        // Verifica se tem todos os parâmetros V2
         let has_all_v2_params =
             fragment.contains("RK1") && fragment.contains("OH1") && fragment.contains("EX1");
 
@@ -150,7 +144,6 @@ impl PjParam {
             return Err(PjParseError::NotV2);
         }
 
-        // Verifica lowercase novamente
         if fragment.chars().any(|c| c.is_lowercase()) {
             return Err(PjParseError::LowercaseFragment);
         }

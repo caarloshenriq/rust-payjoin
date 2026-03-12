@@ -32,6 +32,9 @@ pub use crate::output_substitution::OutputSubstitution;
 use crate::uri::v1::PjParam;
 use crate::{PjUri, Request, MAX_CONTENT_LENGTH};
 
+use url::Url;
+use crate::Version;
+
 /// A builder to construct the properties of a `Sender`.
 #[derive(Clone)]
 pub struct SenderBuilder {

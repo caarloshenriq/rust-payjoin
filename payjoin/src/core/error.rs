@@ -3,6 +3,8 @@ use core::fmt::{self, Debug};
 #[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
 
+#[cfg(feature = "std")]
+use std::error;
 #[cfg(not(feature = "std"))]
 use core::error;
 

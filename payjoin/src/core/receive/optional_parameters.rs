@@ -3,9 +3,7 @@ use core::fmt;
 use alloc::string::String;
 
 #[cfg(feature = "std")]
-#[cfg(not(feature = "std"))]
-use core::error;
-
+use std::error;
 #[cfg(not(feature = "std"))]
 use core::error;
 use bitcoin::FeeRate;

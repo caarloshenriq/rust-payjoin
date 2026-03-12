@@ -7,7 +7,6 @@ use alloc::borrow::Cow;
 use alloc::boxed::Box;
 #[cfg(feature = "std")]
 use alloc::vec::Vec;
-#[cfg(feature = "std")]
 #[cfg(not(feature = "std"))]
 use alloc::vec;
 #[cfg(feature = "std")]
@@ -26,7 +25,6 @@ use crate::uri::error::InternalPjParseError;
 mod error;
 #[cfg(feature = "v1")]
 pub mod v1;
-#[cfg(feature = "v2")]
 #[cfg(feature = "v2-std")]
 pub mod v2;
 
@@ -41,7 +39,7 @@ pub enum PjParam {
 }
 
 impl PjParam {
-    #[cfg(feature = "v2-std")]
+    #[cfg(any(feature = "v1", feature = "v2-std"))]
     pub fn parse(endpoint: impl super::IntoUrl) -> Result<Self, PjParseError> {
         let endpoint = endpoint.into_url().map_err(InternalPjParseError::IntoUrl)?;
 
@@ -74,10 +72,10 @@ impl PjParam {
         compile_error!("Either v1 or v2 feature must be enabled");
     }
 
-    #[cfg(feature = "v2-std")]
+    #[cfg(any(feature = "v1", feature = "v2-std"))]
     pub fn endpoint(&self) -> String { self.endpoint_url().to_string() }
 
-    #[cfg(feature = "v2-std")]
+    #[cfg(any(feature = "v1", feature = "v2-std"))]
     pub(crate) fn endpoint_url(&self) -> url::Url {
         match self {
             #[cfg(feature = "v1")]
@@ -88,7 +86,7 @@ impl PjParam {
     }
 }
 
-#[cfg(feature = "v2-std")]
+#[cfg(any(feature = "v1", feature = "v2-std"))]
 impl fmt::Display for PjParam {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // normalizing to uppercase enables QR alphanumeric mode encoding
@@ -164,6 +162,7 @@ pub trait UriExt<'a>: sealed::UriExt {
 
 #[cfg(feature = "std")]
 impl<'a> UriExt<'a> for Uri<'a, NetworkChecked> {
+    #[allow(unreachable_code, unused_mut, unused_variables)]
     fn check_pj_supported(self) -> Result<PjUri<'a>, Box<bitcoin_uri::Uri<'a>>> {
         match self.extras {
             MaybePayjoinExtras::Supported(payjoin) => {
@@ -186,12 +185,12 @@ impl<'a> UriExt<'a> for Uri<'a, NetworkChecked> {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "v2-std")]
 impl bitcoin_uri::de::DeserializationError for MaybePayjoinExtras {
     type Error = PjParseError;
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "v2-std")]
 impl bitcoin_uri::de::DeserializeParams<'_> for MaybePayjoinExtras {
     type DeserializationState = DeserializationState;
 }
@@ -203,7 +202,7 @@ pub struct DeserializationState {
     pjos: Option<OutputSubstitution>,
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "v2-std")]
 impl bitcoin_uri::SerializeParams for &MaybePayjoinExtras {
     type Key = &'static str;
     type Value = String;
@@ -217,7 +216,7 @@ impl bitcoin_uri::SerializeParams for &MaybePayjoinExtras {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "v2-std")]
 impl bitcoin_uri::SerializeParams for &PayjoinExtras {
     type Key = &'static str;
     type Value = String;
@@ -233,7 +232,7 @@ impl bitcoin_uri::SerializeParams for &PayjoinExtras {
     }
 }
 
-#[cfg(feature = "std")]
+#[cfg(feature = "v2-std")]
 impl bitcoin_uri::de::DeserializationState<'_> for DeserializationState {
     type Value = MaybePayjoinExtras;
 

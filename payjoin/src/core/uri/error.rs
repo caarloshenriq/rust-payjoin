@@ -1,3 +1,5 @@
+#[cfg(feature = "std")]
+use std::error;
 #[cfg(not(feature = "std"))]
 use core::error;
 
@@ -12,7 +14,7 @@ pub(super) enum InternalPjParseError {
     DuplicateParams(&'static str),
     MissingEndpoint,
     NotUtf8,
-    #[cfg(feature = "v2-std")]
+    #[cfg(any(feature = "v1", feature = "v2-std"))]
     IntoUrl(crate::into_url::Error),
     #[cfg(feature = "v1")]
     UnsecureEndpoint,
@@ -32,7 +34,7 @@ impl error::Error for PjParseError {
             DuplicateParams(_) => None,
             MissingEndpoint => None,
             NotUtf8 => None,
-            #[cfg(feature = "v2-std")]
+            #[cfg(any(feature = "v1", feature = "v2-std"))]
             IntoUrl(e) => Some(e),
             #[cfg(feature = "v1")]
             UnsecureEndpoint => None,
@@ -52,7 +54,7 @@ impl fmt::Display for PjParseError {
             }
             MissingEndpoint => write!(f, "Missing payjoin endpoint"),
             NotUtf8 => write!(f, "Endpoint is not valid UTF-8"),
-            #[cfg(feature = "v2-std")]
+            #[cfg(any(feature = "v1", feature = "v2-std"))]
             IntoUrl(e) => write!(f, "Endpoint is not valid: {e:?}"),
             #[cfg(feature = "v1")]
             UnsecureEndpoint => {

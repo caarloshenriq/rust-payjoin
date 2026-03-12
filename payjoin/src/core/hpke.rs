@@ -2,10 +2,8 @@
 use core::fmt;
 #[cfg(not(feature = "std"))]
 use core::error;
-
-#[cfg(not(feature = "std"))]
-use core::error;
-
+#[cfg(feature = "std")]
+use std::error;
 use core::ops::Deref;
 use alloc::vec::Vec;
 

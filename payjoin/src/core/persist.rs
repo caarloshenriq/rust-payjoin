@@ -62,17 +62,14 @@ where
         MaybeSuccessTransitionWithNoResults(Err(Rejection::fatal(event, error)))
     }
 
-    #[cfg(not(feature = "v2"))]
     pub(crate) fn transient(error: Err) -> Self {
         MaybeSuccessTransitionWithNoResults(Err(Rejection::transient(error)))
     }
 
-    #[cfg(not(feature = "v2"))]
     pub(crate) fn no_results(current_state: CurrentState) -> Self {
         MaybeSuccessTransitionWithNoResults(Ok(AcceptOptionalTransition::NoResults(current_state)))
     }
 
-    #[cfg(not(feature = "v2"))]
     pub(crate) fn success(success_value: SuccessValue, event: Event) -> Self {
         MaybeSuccessTransitionWithNoResults(Ok(AcceptOptionalTransition::Success(AcceptNextState(
             event,
@@ -695,32 +692,6 @@ trait InternalSessionPersister: SessionPersister {
         }
     }
 
-    /// Save state transition where state transition does not return an error
-    /// Only returns an error if the storage fails
-
-    // /// Loads all the events from the session in the same order they were saved
-    // fn load(
-    //     &self,
-    //     state_transition: MaybeSuccessTransition<Self::SessionEvent, SuccessValue, Err>,
-    // ) -> Result<SuccessValue, PersistedError<Err, Self::InternalStorageError>>
-    // where
-    //     Err: core::error::Error,
-    // {
-    //     match state_transition.0 {
-    //         Ok(AcceptNextState(event, success_value)) => {
-    //             self.save_event(event).map_err(InternalPersistedError::Storage)?;
-    //             self.close().map_err(InternalPersistedError::Storage)?;
-    //             Ok(success_value)
-    //         }
-    //         Err(Rejection::Transient(RejectTransient(err))) =>
-    //             Err(PersistedError(InternalPersistedError::Api(ApiError::Transient(err)))),
-    //         Err(Rejection::Fatal(reject_fatal)) =>
-    //             Err(self.handle_fatal_reject(reject_fatal).into()),
-    //         Err(Rejection::ReplyableError(reject_replyable_error)) =>
-    //             Err(self.handle_replyable_error_reject(reject_replyable_error).into()),
-    //     }
-    // }
-
     /// Persists the outcome of a state transition that may result in one of the following:
     /// - A successful state transition, in which case the success value is returned and the session is closed.
     /// - No state change (stasis), where the current state is retained and nothing is persisted.
@@ -909,8 +880,7 @@ impl<E: 'static> SessionPersister for NoopSessionPersister<E> {
 
 #[cfg(feature = "_test-utils")]
 pub mod test_utils {
-    use sync::{Arc, RwLock};
-
+    use std::sync::{Arc, RwLock};
     use crate::persist::SessionPersister;
 
     #[derive(Clone)]
@@ -925,24 +895,24 @@ pub mod test_utils {
 
     #[derive(Clone)]
     pub(crate) struct InnerStorage<V> {
-        pub(crate) events: sync::Arc<Vec<V>>,
+        pub(crate) events: std::sync::Arc<Vec<V>>,
         pub(crate) is_closed: bool,
     }
 
     impl<V> Default for InnerStorage<V> {
-        fn default() -> Self { Self { events: sync::Arc::new(vec![]), is_closed: false } }
+        fn default() -> Self { Self { events: std::sync::Arc::new(vec![]), is_closed: false } }
     }
 
     impl<V> SessionPersister for InMemoryTestPersister<V>
     where
         V: Clone + 'static,
     {
-        type InternalStorageError = convert::Infallible;
+        type InternalStorageError = core::convert::Infallible;
         type SessionEvent = V;
 
         fn save_event(&self, event: Self::SessionEvent) -> Result<(), Self::InternalStorageError> {
             let mut inner = self.inner.write().expect("Lock should not be poisoned");
-            sync::Arc::make_mut(&mut inner.events).push(event);
+            std::sync::Arc::make_mut(&mut inner.events).push(event);
             Ok(())
         }
 
@@ -951,9 +921,9 @@ pub mod test_utils {
         ) -> Result<Box<dyn Iterator<Item = Self::SessionEvent>>, Self::InternalStorageError>
         {
             let inner = self.inner.read().expect("Lock should not be poisoned");
-            let events = sync::Arc::clone(&inner.events);
+            let events = std::sync::Arc::clone(&inner.events);
             Ok(Box::new(
-                sync::Arc::try_unwrap(events).unwrap_or_else(|arc| (*arc).clone()).into_iter(),
+                Arc::try_unwrap(events).unwrap_or_else(|arc| (*arc).clone()).into_iter(),
             ))
         }
 

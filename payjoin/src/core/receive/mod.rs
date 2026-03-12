@@ -240,7 +240,7 @@ impl<'a> From<&'a InputPair> for InternalInputPair<'a> {
 
 /// Validate the payload of a Payjoin request for PSBT and Params sanity
 #[allow(dead_code)]
-#[cfg(feature = "v2-std")]
+#[cfg(any(feature = "v1", feature = "v2-std"))]
 pub(crate) fn parse_payload(
     base64: &str,
     query: &str,

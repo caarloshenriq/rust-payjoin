@@ -76,7 +76,7 @@ where
 }
 
 /// Async version of [replay_event_log]
-#[cfg(feature = "std")]
+#[cfg(feature = "v2-std")]
 #[allow(dead_code)]
 pub async fn replay_event_log_async<P>(
     persister: &P,

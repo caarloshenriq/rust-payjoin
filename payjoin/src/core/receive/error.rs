@@ -3,6 +3,8 @@ use core::fmt;
 #[cfg(feature = "std")]
 use alloc::string::String;
 
+#[cfg(feature = "std")]
+use std::error;
 #[cfg(not(feature = "std"))]
 use core::error;
 
@@ -120,6 +122,7 @@ impl JsonReply {
     }
 
     /// Get the HTTP status code for the error
+    #[cfg(feature = "v2-std")]
     pub fn status_code(&self) -> u16 {
         match self.error_code {
             ErrorCode::Unavailable => http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -139,7 +142,7 @@ impl From<&ProtocolError> for JsonReply {
             OriginalPayload(e) => e.into(),
             #[cfg(feature = "v1")]
             V1(e) => JsonReply::new(OriginalPsbtRejected, e),
-            #[cfg(feature = "v2")]
+            #[cfg(feature = "v2-std")]
             V2(_) => JsonReply::new(Unavailable, "Receiver error"),
         }
     }
@@ -164,7 +167,7 @@ impl error::Error for ProtocolError {
             Self::OriginalPayload(e) => e.source(),
             #[cfg(feature = "v1")]
             Self::V1(e) => e.source(),
-            #[cfg(feature = "v2")]
+            #[cfg(feature = "v2-std")]
             Self::V2(e) => e.source(),
         }
     }

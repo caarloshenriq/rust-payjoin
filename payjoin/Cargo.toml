@@ -38,8 +38,8 @@ _core = [
   "bitcoin/serde",
 ]
 
-directory = []
-v1 = ["_core"]
+directory = ["alloc", "_core"]
+v1 = ["_core", "std"]
 
 v2 = ["_core", "directory"]
 v2-std = ["v2", "std", "dep:url", "dep:hpke", "dep:ohttp", "dep:bhttp", "dep:http"]

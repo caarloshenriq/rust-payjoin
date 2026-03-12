@@ -14,9 +14,9 @@ pub mod receive;
 mod request;
 pub mod send;
 pub use request::*;
-#[cfg(feature = "v2-std")]
+#[cfg(any(feature = "v1", feature = "v2-std"))]
 pub(crate) mod into_url;
-#[cfg(feature = "v2-std")]
+#[cfg(any(feature = "v1", feature = "v2-std"))]
 pub use into_url::{Error as IntoUrlError, IntoUrl};
 #[cfg(feature = "v2")]
 pub mod time;

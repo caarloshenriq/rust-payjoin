@@ -556,45 +556,6 @@ impl Sender<PollingForProposal> {
             let body = match process_get_res(response, ohttp_ctx) {
                 Ok(Some(body)) => body,
                 Ok(None) => return MaybeSuccessTransitionWithNoResults::no_results(self.clone()),
-                Err(e) =>
-                    if e.is_fatal() {
-                        return MaybeSuccessTransitionWithNoResults::fatal(
-                            SessionEvent::Closed(SessionOutcome::Failure),
-                            InternalEncapsulationError::DirectoryResponse(e).into(),
-                        );
-                    } else {
-                        return MaybeSuccessTransitionWithNoResults::transient(
-                            InternalEncapsulationError::DirectoryResponse(e).into(),
-                        );
-                    },
-            };
-            let body = match decrypt_message_b(
-                &body,
-                self.session_context.pj_param.receiver_pubkey().clone(),
-                &self.session_context.reply_key,
-            ) {
-                Ok(body) => body,
-                Err(e) =>
-                    return MaybeSuccessTransitionWithNoResults::fatal(
-                        SessionEvent::Closed(SessionOutcome::Failure),
-                        InternalEncapsulationError::Hpke(e).into(),
-                    ),
-            };
-            if let Ok(resp_err) = ResponseError::from_slice(&body) {
-            return MaybeSuccessTransitionWithNoResults::fatal(
-                SessionEvent::Closed(SessionOutcome::Failure),
-                InternalEncapsulationError::Implementation(
-                    crate::error::ImplementationError::std_required(),
-                )
-                .into(),
-            );
-        }
-
-        #[cfg(all(feature = "std", feature = "v2-ohttp"))]
-        {
-            let body = match process_get_res(response, ohttp_ctx) {
-                Ok(Some(body)) => body,
-                Ok(None) => return MaybeSuccessTransitionWithNoResults::no_results(self.clone()),
                 Err(e) => {
                     if e.is_fatal() {
                         return MaybeSuccessTransitionWithNoResults::fatal(
@@ -612,7 +573,7 @@ impl Sender<PollingForProposal> {
             let body = match decrypt_message_b(
                 &body,
                 self.session_context.pj_param.receiver_pubkey().clone(),
-                self.session_context.reply_key.clone(),
+                &self.session_context.reply_key.clone(),
             ) {
                 Ok(body) => body,
                 Err(e) => {

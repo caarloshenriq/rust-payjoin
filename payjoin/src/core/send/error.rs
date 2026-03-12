@@ -4,6 +4,8 @@ use core::fmt;
 use bitcoin::locktime::absolute::LockTime;
 use bitcoin::transaction::Version;
 use bitcoin::Sequence;
+#[cfg(feature = "std")]
+use std::error;
 #[cfg(not(feature = "std"))]
 use core::error;
 #[cfg(feature = "std")]
@@ -69,8 +71,8 @@ impl fmt::Display for BuildSenderError {
     }
 }
 
-#[cfg(feature = "v1")]
-impl std::error::Error for SendError {
+#[cfg(any(feature = "v1", feature = "v2-std"))]
+impl std::error::Error for BuildSenderError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         use InternalBuildSenderError::*;
 
