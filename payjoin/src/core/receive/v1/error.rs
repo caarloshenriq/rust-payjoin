@@ -1,4 +1,7 @@
 use core::fmt;
+#[cfg(not(feature = "std"))]
+use core::error;
+#[cfg(feature = "std")]
 use std::error;
 
 /// Error that occurs during validation of an incoming v1 payjoin request.

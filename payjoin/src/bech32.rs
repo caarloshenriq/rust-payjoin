@@ -1,5 +1,9 @@
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 use bitcoin::bech32::primitives::decode::{CheckedHrpstring, CheckedHrpstringError};
 use bitcoin::bech32::{self, EncodeError, Hrp, NoChecksum};
+#[cfg(feature = "alloc")]
+use alloc::string::String;
 
 pub mod nochecksum {
     use super::*;

@@ -14,28 +14,37 @@ pub mod receive;
 mod request;
 pub mod send;
 pub use request::*;
+#[cfg(any(feature = "v1", feature = "v2-std"))]
 pub(crate) mod into_url;
+#[cfg(any(feature = "v1", feature = "v2-std"))]
 pub use into_url::{Error as IntoUrlError, IntoUrl};
 #[cfg(feature = "v2")]
 pub mod time;
 pub mod uri;
-pub use uri::{PjParam, PjParseError, PjUri, Uri, UriExt};
+pub use uri::{PjParam, PjParseError};
+
+#[cfg(feature = "std")]
+pub use uri::PjUri;
+#[cfg(feature = "std")]
+pub use uri::{Uri, UriExt};
 pub(crate) mod error_codes;
 
 pub(crate) mod output_substitution;
 #[cfg(feature = "v1")]
 pub use output_substitution::OutputSubstitution;
 
-#[cfg(feature = "v2")]
+#[cfg(feature = "v2-std")]
 pub(crate) mod hpke;
 #[cfg(feature = "v2")]
 pub mod persist;
-#[cfg(feature = "v2")]
+#[cfg(feature = "v2-std")]
 pub use crate::hpke::{HpkeKeyPair, HpkePublicKey};
-#[cfg(feature = "v2")]
+#[cfg(feature = "v2-std")]
 pub(crate) mod ohttp;
-#[cfg(feature = "v2")]
+#[cfg(feature = "v2-std")]
 pub use crate::ohttp::OhttpKeys;
+#[cfg(test)]
+mod no_std_tests;
 
 #[cfg(feature = "io")]
 #[cfg_attr(docsrs, doc(cfg(feature = "io")))]

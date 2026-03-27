@@ -1,5 +1,14 @@
-use std::{error, fmt};
+use core::fmt;
 
+#[cfg(feature = "std")]
+use alloc::string::String;
+
+#[cfg(feature = "std")]
+use std::error;
+#[cfg(not(feature = "std"))]
+use core::error;
+
+#[cfg(feature = "std")]
 use crate::error_codes::ErrorCode::{
     self, NotEnoughMoney, OriginalPsbtRejected, Unavailable, VersionUnsupported,
 };
@@ -16,6 +25,7 @@ pub enum Error {
     Implementation(crate::ImplementationError),
 }
 
+#[cfg(feature = "std")]
 impl From<&Error> for JsonReply {
     fn from(e: &Error) -> Self {
         match e {
@@ -63,7 +73,7 @@ pub enum ProtocolError {
     /// Protocol-specific errors for BIP-78 v1 requests (e.g. HTTP request validation, parameter checks)
     #[cfg(feature = "v1")]
     V1(crate::receive::v1::RequestError),
-    #[cfg(feature = "v2")]
+    #[cfg(feature = "v2-std")]
     /// V2-specific errors that are infeasable to reply to the sender
     V2(crate::receive::v2::SessionError),
 }
@@ -77,6 +87,7 @@ pub enum ProtocolError {
 ///     "message": "Human readable error message"
 /// }
 /// ```
+#[cfg(feature = "std")]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct JsonReply {
     /// The error code
@@ -87,6 +98,7 @@ pub struct JsonReply {
     extra: serde_json::Map<String, serde_json::Value>,
 }
 
+#[cfg(feature = "std")]
 impl JsonReply {
     /// Create a new Reply
     pub(crate) fn new(error_code: ErrorCode, message: impl fmt::Display) -> Self {
@@ -110,6 +122,7 @@ impl JsonReply {
     }
 
     /// Get the HTTP status code for the error
+    #[cfg(feature = "v2-std")]
     pub fn status_code(&self) -> u16 {
         match self.error_code {
             ErrorCode::Unavailable => http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -121,6 +134,7 @@ impl JsonReply {
     }
 }
 
+#[cfg(feature = "std")]
 impl From<&ProtocolError> for JsonReply {
     fn from(e: &ProtocolError) -> Self {
         use ProtocolError::*;
@@ -128,7 +142,7 @@ impl From<&ProtocolError> for JsonReply {
             OriginalPayload(e) => e.into(),
             #[cfg(feature = "v1")]
             V1(e) => JsonReply::new(OriginalPsbtRejected, e),
-            #[cfg(feature = "v2")]
+            #[cfg(feature = "v2-std")]
             V2(_) => JsonReply::new(Unavailable, "Receiver error"),
         }
     }
@@ -140,19 +154,20 @@ impl fmt::Display for ProtocolError {
             Self::OriginalPayload(e) => e.fmt(f),
             #[cfg(feature = "v1")]
             Self::V1(e) => e.fmt(f),
-            #[cfg(feature = "v2")]
+            #[cfg(feature = "v2-std")]
             Self::V2(e) => e.fmt(f),
         }
     }
 }
 
 impl error::Error for ProtocolError {
+    #[cfg(feature = "std")]
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match &self {
             Self::OriginalPayload(e) => e.source(),
             #[cfg(feature = "v1")]
             Self::V1(e) => e.source(),
-            #[cfg(feature = "v2")]
+            #[cfg(feature = "v2-std")]
             Self::V2(e) => e.source(),
         }
     }
@@ -185,10 +200,12 @@ impl From<InternalPayloadError> for PayloadError {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub(crate) enum InternalPayloadError {
     /// The payload is not valid utf-8
-    Utf8(std::str::Utf8Error),
+    Utf8(core::str::Utf8Error),
     /// The payload is not a valid PSBT
+     #[cfg(feature = "std")]
     ParsePsbt(bitcoin::psbt::PsbtParseError),
     /// Invalid sender parameters
     SenderParams(super::optional_parameters::Error),
@@ -217,6 +234,7 @@ pub(crate) enum InternalPayloadError {
     FeeTooHigh(bitcoin::FeeRate, bitcoin::FeeRate),
 }
 
+#[cfg(feature = "std")]
 impl From<&PayloadError> for JsonReply {
     fn from(e: &PayloadError) -> Self {
         use InternalPayloadError::*;
@@ -258,6 +276,7 @@ impl fmt::Display for InternalPayloadError {
 
         match &self {
             Utf8(e) => write!(f, "{e}"),
+            #[cfg(feature = "std")]
             ParsePsbt(e) => write!(f, "{e}"),
             SenderParams(e) => write!(f, "{e}"),
             InconsistentPsbt(e) => write!(f, "{e}"),
@@ -278,6 +297,7 @@ impl fmt::Display for InternalPayloadError {
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for PayloadError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         use InternalPayloadError::*;
@@ -335,8 +355,8 @@ impl From<InternalOutputSubstitutionError> for OutputSubstitutionError {
     fn from(value: InternalOutputSubstitutionError) -> Self { OutputSubstitutionError(value) }
 }
 
-impl std::error::Error for OutputSubstitutionError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl error::Error for OutputSubstitutionError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match &self.0 {
             InternalOutputSubstitutionError::DecreasedValueWhenDisabled => None,
             InternalOutputSubstitutionError::ScriptPubKeyChangedWhenDisabled => None,
@@ -431,7 +451,7 @@ impl From<InternalInputContributionError> for InputContributionError {
     fn from(value: InternalInputContributionError) -> Self { InputContributionError(value) }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
     use crate::ImplementationError;
