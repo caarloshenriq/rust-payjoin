@@ -1154,7 +1154,7 @@ mod tests {
             assert_eq!(event.0, expected_event.0);
         }
 
-        assert_eq!(persister.inner.lock().await.is_closed, expected_result.is_closed);
+        assert_eq!(persister.inner.read().await.is_closed, expected_result.is_closed);
 
         match (&result, &expected_result.error) {
             (Ok(actual), None) => {

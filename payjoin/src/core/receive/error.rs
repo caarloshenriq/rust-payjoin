@@ -123,12 +123,11 @@ impl JsonReply {
     #[cfg(any(feature = "v1", feature = "v2-std"))]
     pub fn status_code(&self) -> u16 {
         match self.error_code {
-            ErrorCode::Unavailable => http::StatusCode::INTERNAL_SERVER_ERROR,
+            ErrorCode::Unavailable => 500,
             ErrorCode::NotEnoughMoney
             | ErrorCode::VersionUnsupported
-            | ErrorCode::OriginalPsbtRejected => http::StatusCode::BAD_REQUEST,
+            | ErrorCode::OriginalPsbtRejected => 400,
         }
-        .as_u16()
     }
 }
 

@@ -21,16 +21,17 @@
 //! [`bitmask-core`](https://github.com/diba-io/bitmask-core) BDK integration. Bring your own
 //! wallet and http client.
 
-use std::str::FromStr;
+use core::str::FromStr;
 
 use bitcoin::psbt::Psbt;
 use bitcoin::{Address, Amount, FeeRate};
 use error::BuildSenderError;
+use url::Url;
 
 use super::*;
 pub use crate::output_substitution::OutputSubstitution;
 use crate::uri::v1::PjParam;
-use crate::{PjUri, Request, MAX_CONTENT_LENGTH};
+use crate::{PjUri, Request, Version, MAX_CONTENT_LENGTH};
 
 /// A builder to construct the properties of a `Sender`.
 #[derive(Clone)]
@@ -211,8 +212,11 @@ impl V1Context {
             return Err(ResponseError::from(InternalValidationError::ContentTooLarge));
         }
 
-        let res_str = std::str::from_utf8(response).map_err(|_| InternalValidationError::Parse)?;
-        let proposal = Psbt::from_str(res_str).map_err(|_| ResponseError::parse(res_str))?;
+        let res_str = core::str::from_utf8(response).map_err(|_| InternalValidationError::Parse)?;
+        let proposal = Psbt::from_str(res_str).map_err(|_| {
+            ResponseError::parse_from_str(res_str)
+                .unwrap_or_else(|_| InternalValidationError::Parse.into())
+        })?;
         self.psbt_context.process_proposal(proposal).map_err(Into::into)
     }
 }
