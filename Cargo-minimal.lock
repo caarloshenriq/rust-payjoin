@@ -2766,6 +2766,7 @@ dependencies = [
  "bitcoin-ohttp",
  "bitcoin-units",
  "bitcoin_uri",
+ "getrandom 0.3.4",
  "http",
  "once_cell",
  "payjoin-test-utils",
@@ -2776,6 +2777,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "url",
  "web-time",
 ]
 
