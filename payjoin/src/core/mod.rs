@@ -19,7 +19,11 @@ pub(crate) mod into_url;
 #[cfg(any(feature = "v1", feature = "v2-std"))]
 pub use into_url::{Error as IntoUrlError, IntoUrl};
 pub(crate) mod url;
+#[cfg(feature = "v2-std")]
 pub use url::{ParseError as UrlParseError, Url};
+
+#[cfg(not(feature = "v2-std"))]
+pub use crate::core::url::{ParseError as UrlParseError, Url};
 #[cfg(feature = "v2")]
 pub mod time;
 pub mod uri;

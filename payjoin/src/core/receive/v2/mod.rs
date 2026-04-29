@@ -80,9 +80,6 @@ const SUPPORTED_VERSIONS: &[Version] = &[Version::One, Version::Two];
 
 static TWENTY_FOUR_HOURS_DEFAULT_EXPIRATION: Duration = Duration::from_secs(60 * 60 * 24);
 
-#[cfg(feature = "std")]
-pub(crate) use super::JsonReply;
-
 #[cfg(not(feature = "std"))]
 mod json_reply_placeholder {
     use core::fmt;
@@ -1559,9 +1556,8 @@ pub mod test {
 
     use super::*;
     use crate::output_substitution::OutputSubstitution;
-    use crate::persist::{
-        InMemoryPersister, OptionalTransitionOutcome, RejectTransient, Rejection,
-    };
+    use crate::persist::test_utils::InMemoryPersister;
+    use crate::persist::{OptionalTransitionOutcome, RejectTransient, Rejection};
     use crate::receive::optional_parameters::Params;
     use crate::receive::v2;
     use crate::ImplementationError;

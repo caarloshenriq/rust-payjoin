@@ -129,6 +129,7 @@ impl Params {
         Ok(params)
     }
 
+    #[cfg(feature = "std")]
     pub fn from_query_str(
         query: &str,
         supported_versions: &'static [Version],

@@ -236,7 +236,7 @@ mod tests {
     use payjoin_test_utils::{BoxError, EXAMPLE_URL};
 
     use super::*;
-    use crate::persist::{InMemoryAsyncPersister, InMemoryPersister};
+    use crate::persist::test_utils::{InMemoryAsyncTestPersister, InMemoryPersister};
     use crate::receive::tests::original_from_test_vector;
     use crate::receive::v2::test::{mock_err, SHARED_CONTEXT};
     use crate::receive::v2::{
@@ -362,7 +362,7 @@ mod tests {
     }
 
     async fn run_session_history_test_async(test: &SessionHistoryTest) {
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         for event in test.events.clone() {
             persister.save_event(event).await.expect("In memory persister shouldn't fail");
         }
@@ -401,7 +401,7 @@ mod tests {
             InternalReplayError::Expired(expiration).into();
         assert_eq!(err.to_string(), expected_err.to_string());
 
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         persister
             .save_event(SessionEvent::Created(session_context))
             .await
@@ -429,7 +429,7 @@ mod tests {
         assert_eq!(err.to_string(), expected_err.to_string());
         assert!(persister.inner.read().expect("lock should not be poisoned").is_closed);
 
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         persister
             .save_event(SessionEvent::CheckedBroadcastSuitability())
             .await

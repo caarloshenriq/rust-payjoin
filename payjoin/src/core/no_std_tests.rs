@@ -65,7 +65,7 @@ fn alloc_vec_smoke() {
 #[test]
 fn fee_math_is_deterministic() {
     let w = Weight::from_wu(400); // 100 vbytes
-    let fr = FeeRate::from_sat_per_vb_unchecked(2);
+    let fr = FeeRate::from_sat_per_vb_u32(2);
 
     // 100 vbytes * 2 sat/vb = 200 sats
     let fee = w * fr;

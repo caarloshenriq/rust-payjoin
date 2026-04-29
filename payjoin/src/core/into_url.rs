@@ -1,8 +1,8 @@
-use crate::core::{Url, UrlParseError};
 use alloc::string::String;
 use core::{error, fmt};
 
-use url::{ParseError, Url};
+use crate::core::{Url, UrlParseError};
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     BadScheme,
