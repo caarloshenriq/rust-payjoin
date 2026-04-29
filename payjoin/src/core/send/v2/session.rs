@@ -199,7 +199,7 @@ mod tests {
     use super::*;
     use crate::core::Url;
     use crate::output_substitution::OutputSubstitution;
-    use crate::persist::{InMemoryAsyncPersister, InMemoryPersister};
+    use crate::persist::test_utils::{InMemoryAsyncTestPersister, InMemoryPersister};
     use crate::send::v2::{Sender, SenderBuilder, SessionContext, WithReplyKey};
     use crate::send::PsbtContext;
     use crate::time::Time;
@@ -316,7 +316,7 @@ mod tests {
     }
 
     async fn run_session_history_test_async(test: &SessionHistoryTest) {
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         for event in test.events.clone() {
             persister.save_event(event).await.expect("In memory persister shouldn't fail");
         }
@@ -456,7 +456,7 @@ mod tests {
         assert_eq!(err.to_string(), expected_err.to_string());
         assert!(persister.inner.read().expect("lock should not be poisoned").is_closed);
 
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         persister
             .save_event(SessionEvent::PostedOriginalPsbt())
             .await

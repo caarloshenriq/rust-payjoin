@@ -10,10 +10,10 @@ use core::str::FromStr;
 use std::error;
 
 use bitcoin::bech32::Hrp;
-#[cfg(feature = "v2-std")]
-use crate::core::Url;
 
 use crate::alloc::string::ToString;
+#[cfg(feature = "v2-std")]
+use crate::core::Url;
 use crate::hpke::HpkePublicKey;
 use crate::ohttp::OhttpKeys;
 use crate::time::{ParseTimeError, Time};

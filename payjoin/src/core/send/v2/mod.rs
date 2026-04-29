@@ -47,13 +47,13 @@ pub use session::{
     replay_event_log, replay_event_log_async, SessionEvent, SessionHistory, SessionOutcome,
     SessionStatus,
 };
-#[cfg(feature = "v2-std")]
-use crate::core::Url;
 
 use super::error::BuildSenderError;
 use super::*;
 #[cfg(feature = "std")]
 use crate::core::uri::PjUri;
+#[cfg(feature = "v2-std")]
+use crate::core::Url;
 use crate::error::{InternalReplayError, ReplayError};
 #[cfg(feature = "v2-std")]
 use crate::hpke::decrypt_message_b;
@@ -272,6 +272,7 @@ impl<State> Sender<State> {
     pub fn endpoint(&self) -> String { self.session_context.pj_param.endpoint().to_string() }
 }
 
+#[cfg(feature = "v2-std")]
 impl<S: State> Sender<S> {
     /// Cancel the Payjoin session immediately.
     ///
@@ -649,7 +650,7 @@ mod test {
     use payjoin_test_utils::{BoxError, EXAMPLE_URL, KEM, KEY_ID, PARSED_ORIGINAL_PSBT, SYMMETRIC};
 
     use super::*;
-    use crate::persist::InMemoryPersister;
+    use crate::persist::test_utils::InMemoryPersister;
     use crate::receive::v2::ReceiverBuilder;
     use crate::time::Time;
     use crate::OhttpKeys;

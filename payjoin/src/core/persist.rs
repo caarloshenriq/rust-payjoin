@@ -1037,11 +1037,11 @@ pub mod test_utils {
 
     #[derive(Clone)]
     /// In-memory session persister for testing session replays and introspecting session events
-    pub struct InMemoryTestPersister<V> {
+    pub struct InMemoryPersister<V> {
         pub(crate) inner: Arc<RwLock<InnerStorage<V>>>,
     }
 
-    impl<V> Default for InMemoryTestPersister<V> {
+    impl<V> Default for InMemoryPersister<V> {
         fn default() -> Self { Self { inner: Arc::new(RwLock::new(InnerStorage::default())) } }
     }
 
@@ -1055,7 +1055,7 @@ pub mod test_utils {
         fn default() -> Self { Self { events: std::sync::Arc::new(vec![]), is_closed: false } }
     }
 
-    impl<V> SessionPersister for InMemoryTestPersister<V>
+    impl<V> SessionPersister for InMemoryPersister<V>
     where
         V: Clone + 'static,
     {

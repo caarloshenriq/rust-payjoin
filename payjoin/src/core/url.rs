@@ -8,8 +8,13 @@
 //! The primary entry point is [`Url`], with parse errors surfaced through
 //! [`ParseError`] (re-exported at the crate root as `UrlParseError`).
 
-use core::fmt;
+use alloc::string::String;
+use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::str::FromStr;
+use core::{error, fmt};
+
+use crate::alloc::string::ToString;
 
 /// A parsed URL.
 ///
@@ -168,7 +173,7 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl std::error::Error for ParseError {}
+impl error::Error for ParseError {}
 
 impl FromStr for Url {
     type Err = ParseError;
@@ -272,6 +277,7 @@ impl Url {
     pub fn query_pairs_mut(&mut self) -> UrlQueryPairs<'_> { UrlQueryPairs { url: self } }
 
     /// Return parsed query pairs as a Vec of Strings
+    #[cfg(feature = "std")]
     pub fn query_pairs(&self) -> Vec<(String, String)> {
         let Some(query) = &self.query else { return vec![] };
         query
