@@ -495,6 +495,7 @@ impl<Event, T> TerminalTransition<Event, T> {
         Ok(self.1)
     }
 
+    #[cfg(feature = "std")]
     pub async fn save_async<P>(self, persister: &P) -> Result<T, P::InternalStorageError>
     where
         P: AsyncSessionPersister<SessionEvent = Event>,

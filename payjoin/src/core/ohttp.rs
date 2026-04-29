@@ -11,7 +11,6 @@ use bitcoin::bech32::{self, EncodeError};
 use bitcoin::key::constants::UNCOMPRESSED_PUBLIC_KEY_SIZE;
 use hpke::rand_core::{OsRng, RngCore};
 
-use crate::alloc::string::ToString;
 use crate::directory::ENCAPSULATED_MESSAGE_BYTES;
 
 const N_ENC: usize = UNCOMPRESSED_PUBLIC_KEY_SIZE;

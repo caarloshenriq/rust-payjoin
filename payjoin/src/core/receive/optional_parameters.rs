@@ -1,3 +1,4 @@
+use alloc::format;
 use alloc::string::String;
 use core::borrow::Borrow;
 #[cfg(not(feature = "std"))]
@@ -127,6 +128,7 @@ impl Params {
         Ok(params)
     }
 
+    #[cfg(feature = "std")]
     pub fn from_query_str(
         query: &str,
         supported_versions: &'static [Version],

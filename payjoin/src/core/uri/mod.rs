@@ -78,7 +78,7 @@ impl PjParam {
     pub fn endpoint(&self) -> String { self.endpoint_url().to_string() }
 
     #[cfg(any(feature = "v1", feature = "v2-std"))]
-    pub(crate) fn endpoint_url(&self) -> url::Url {
+    pub(crate) fn endpoint_url(&self) -> crate::core::Url {
         match self {
             #[cfg(feature = "v1")]
             PjParam::V1(url) => url.endpoint(),

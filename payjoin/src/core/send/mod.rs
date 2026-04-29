@@ -25,9 +25,8 @@ use bitcoin::{Amount, FeeRate, Script, ScriptBuf, TxOut, Weight};
 pub use error::{BuildSenderError, ResponseError, ValidationError, WellKnownError};
 #[allow(unused_imports)]
 pub(crate) use error::{InternalBuildSenderError, InternalProposalError, InternalValidationError};
-#[cfg(any(feature = "v1", feature = "v2-std"))]
-use url::Url;
 
+#[cfg(any(feature = "v1", feature = "v2-std"))]
 use crate::core::Url;
 use crate::output_substitution::OutputSubstitution;
 use crate::psbt::{AddressTypeError, PsbtExt, NON_WITNESS_INPUT_WEIGHT};
@@ -698,10 +697,10 @@ mod test {
         BoxError, PARSED_ORIGINAL_PSBT, PARSED_PAYJOIN_PROPOSAL,
         PARSED_PAYJOIN_PROPOSAL_WITH_SENDER_INFO,
     };
-    #[cfg(feature = "v2-std")]
-    use crate::core::Url;
 
     use super::*;
+    #[cfg(feature = "v2-std")]
+    use crate::core::Url;
     // use crate::core::OutputSubstitution;
     use crate::output_substitution::OutputSubstitution;
     use crate::psbt::PsbtExt;

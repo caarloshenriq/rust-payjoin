@@ -80,9 +80,6 @@ const SUPPORTED_VERSIONS: &[Version] = &[Version::One, Version::Two];
 
 static TWENTY_FOUR_HOURS_DEFAULT_EXPIRATION: Duration = Duration::from_secs(60 * 60 * 24);
 
-#[cfg(feature = "std")]
-pub(crate) use super::JsonReply;
-
 #[cfg(not(feature = "std"))]
 mod json_reply_placeholder {
     use core::fmt;

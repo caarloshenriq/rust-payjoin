@@ -26,9 +26,9 @@ use core::str::FromStr;
 use bitcoin::psbt::Psbt;
 use bitcoin::{Address, Amount, FeeRate};
 use error::BuildSenderError;
-use url::Url;
 
 use super::*;
+use crate::core::Url;
 pub use crate::output_substitution::OutputSubstitution;
 use crate::uri::v1::PjParam;
 use crate::{PjUri, Request, Version, MAX_CONTENT_LENGTH};
