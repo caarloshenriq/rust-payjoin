@@ -170,7 +170,10 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
         with:
           components: rust-src
+          targets: thumbv7em-none-eabihf
       - name: Install ARM cross compiler
         run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi
       - name: "Build embedded target"
+        env:
+          CC_thumbv7em_none_eabihf: arm-none-eabi-gcc
         run: cargo build -p payjoin --no-default-features --features "alloc,v2" --target thumbv7em-none-eabihf -Zbuild-std=core,alloc

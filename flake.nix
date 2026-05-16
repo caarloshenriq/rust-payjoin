@@ -99,6 +99,7 @@
                   ]
                   ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
                     "x86_64-unknown-linux-gnu"
+                    "thumbv7em-none-eabihf"
                   ];
               }
             )
@@ -284,12 +285,14 @@
                 cargo-fuzz
                 bzip2 # needed for some machines to have access to libzip at runtime
                 codespell
+                gcc-arm-embedded
               ]
               ++ pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
                 cargo-llvm-cov
               ];
             BITCOIND_EXE = pkgs.lib.getExe' pkgs.bitcoind "bitcoind";
             BITCOIND_SKIP_DOWNLOAD = 1;
+            CC_thumbv7em_none_eabihf = "arm-none-eabi-gcc";
           }
         ) craneLibVersions;
 
