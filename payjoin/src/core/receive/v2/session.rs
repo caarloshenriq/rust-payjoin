@@ -115,7 +115,7 @@ impl SessionHistory {
     }
 
     /// Receiver session Payjoin URI
-    #[cfg(feature = "v1")]
+    #[cfg(any(feature = "v1", feature = "v2-std"))]
     pub fn pj_uri<'a>(&'a self) -> PjUri<'a> {
         self.events
             .iter()
