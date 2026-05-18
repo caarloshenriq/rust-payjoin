@@ -1,10 +1,18 @@
+use alloc::boxed::Box;
+#[cfg(not(feature = "std"))]
+use alloc::vec;
+use alloc::vec::Vec;
+
 use serde::{Deserialize, Serialize};
 
 use super::{ReceiveSession, SessionContext};
+#[cfg(feature = "v1")]
+use crate::core::OutputSubstitution;
 use crate::error::{InternalReplayError, ReplayError};
-use crate::output_substitution::OutputSubstitution;
-use crate::persist::{AsyncSessionPersister, SessionPersister};
-use crate::receive::{InputPair, JsonReply, OriginalPayload, PsbtContext};
+#[cfg(feature = "std")]
+use crate::persist::AsyncSessionPersister;
+use crate::persist::SessionPersister;
+use crate::receive::{InputPair, OriginalPayload, PsbtContext};
 use crate::{ImplementationError, PjUri};
 
 fn replay_events(
@@ -24,19 +32,6 @@ fn replay_events(
     Ok((receiver, session_events))
 }
 
-fn construct_history(
-    session_events: Vec<SessionEvent>,
-) -> Result<SessionHistory, ReplayError<ReceiveSession, SessionEvent>> {
-    let history = SessionHistory::new(session_events);
-    let ctx = history.session_context();
-    if ctx.expiration.elapsed() {
-        return Err(InternalReplayError::Expired(ctx.expiration).into());
-    }
-    Ok(history)
-}
-
-/// Replay a receiver event log to get the receiver in its current state [ReceiveSession]
-/// and a session history [SessionHistory]
 pub fn replay_event_log<P>(
     persister: &P,
 ) -> Result<(ReceiveSession, SessionHistory), ReplayError<ReceiveSession, SessionEvent>>
@@ -63,7 +58,22 @@ where
     Ok((receiver, history))
 }
 
+fn construct_history(
+    session_events: Vec<SessionEvent>,
+) -> Result<SessionHistory, ReplayError<ReceiveSession, SessionEvent>> {
+    let history = SessionHistory::new(session_events);
+    #[cfg(feature = "std")]
+    {
+        let ctx = history.session_context();
+        if ctx.expiration.elapsed() {
+            return Err(InternalReplayError::Expired(ctx.expiration).into());
+        }
+    }
+    Ok(history)
+}
+
 /// Async version of [replay_event_log]
+#[cfg(feature = "std")]
 pub async fn replay_event_log_async<P>(
     persister: &P,
 ) -> Result<(ReceiveSession, SessionHistory), ReplayError<ReceiveSession, SessionEvent>>
@@ -105,12 +115,13 @@ impl SessionHistory {
     }
 
     /// Receiver session Payjoin URI
-    pub fn pj_uri<'a>(&self) -> PjUri<'a> {
+    #[cfg(any(feature = "v1", feature = "v2-std"))]
+    pub fn pj_uri<'a>(&'a self) -> PjUri<'a> {
         self.events
             .iter()
             .find_map(|event| match event {
                 SessionEvent::Created(session_context) =>
-                    Some(crate::receive::v2::pj_uri(session_context, OutputSubstitution::Disabled)),
+                    Some(crate::receive::v2::pj_uri(session_context)),
                 _ => None,
             })
             .expect("Session event log must contain at least one event with pj_uri")
@@ -136,6 +147,7 @@ impl SessionHistory {
         })
     }
 
+    #[allow(dead_code)]
     fn session_context(&self) -> SessionContext {
         let mut initial_session_context = self
             .events
@@ -156,6 +168,7 @@ impl SessionHistory {
 
     /// Helper method to query the current status of the session.
     pub fn status(&self) -> SessionStatus {
+        #[cfg(feature = "std")]
         if self.session_context().expiration.elapsed() {
             return SessionStatus::Expired;
         }
@@ -196,7 +209,7 @@ pub enum SessionEvent {
     CommittedInputs(Vec<InputPair>),
     AppliedFeeRange(PsbtContext),
     FinalizedProposal(bitcoin::Psbt),
-    GotReplyableError(JsonReply),
+    GotReplyableError(super::JsonReply),
     PostedPayjoinProposal(),
     Closed(SessionOutcome),
 }
@@ -222,10 +235,11 @@ pub enum SessionOutcome {
 mod tests {
     use std::time::{Duration, SystemTime};
 
+    #[allow(unused_imports)]
     use payjoin_test_utils::{BoxError, EXAMPLE_URL};
 
     use super::*;
-    use crate::persist::{InMemoryAsyncPersister, InMemoryPersister};
+    use crate::persist::test_utils::{InMemoryAsyncTestPersister, InMemoryPersister};
     use crate::receive::tests::original_from_test_vector;
     use crate::receive::v2::test::{mock_err, SHARED_CONTEXT};
     use crate::receive::v2::{
@@ -349,7 +363,7 @@ mod tests {
     }
 
     async fn run_session_history_test_async(test: &SessionHistoryTest) {
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         for event in test.events.clone() {
             persister.save_event(event).await.expect("In memory persister shouldn't fail");
         }
@@ -388,7 +402,7 @@ mod tests {
             InternalReplayError::Expired(expiration).into();
         assert_eq!(err.to_string(), expected_err.to_string());
 
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         persister
             .save_event(SessionEvent::Created(session_context))
             .await
@@ -416,7 +430,7 @@ mod tests {
         assert_eq!(err.to_string(), expected_err.to_string());
         assert!(persister.inner.read().expect("lock should not be poisoned").is_closed);
 
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         persister
             .save_event(SessionEvent::CheckedBroadcastSuitability())
             .await
@@ -747,13 +761,16 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "v1")]
     fn test_session_history_uri() -> Result<(), BoxError> {
         let session_context = SHARED_CONTEXT.clone();
         let events = vec![SessionEvent::Created(session_context.clone())];
 
-        let uri = SessionHistory { events }.pj_uri();
+        let binding = SessionHistory { events };
+        let uri = binding.pj_uri();
 
         assert_ne!(uri.extras.pj_param.endpoint().as_str(), EXAMPLE_URL);
+        #[cfg(feature = "v1")]
         assert_eq!(uri.extras.output_substitution, OutputSubstitution::Disabled);
 
         Ok(())

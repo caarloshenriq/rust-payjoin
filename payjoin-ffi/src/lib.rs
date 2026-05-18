@@ -11,7 +11,8 @@ pub mod test_utils;
 pub mod uri;
 mod validation;
 
-pub use payjoin::persist::InMemoryPersister;
+#[cfg(feature = "_test-utils")]
+pub use payjoin::persist::test_utils::InMemoryPersister;
 
 pub use crate::ohttp::*;
 pub use crate::output_substitution::*;
