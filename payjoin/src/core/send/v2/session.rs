@@ -1,9 +1,20 @@
+#![allow(unused_imports)]
+use alloc::boxed::Box;
+#[cfg(not(feature = "std"))]
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::error::{InternalReplayError, ReplayError};
-use crate::persist::{AsyncSessionPersister, SessionPersister};
+#[cfg(feature = "std")]
+use crate::persist::AsyncSessionPersister;
+use crate::persist::SessionPersister;
+#[cfg(feature = "v2-std")]
 use crate::send::v2::{SendSession, SessionContext};
+#[cfg(feature = "v2-std")]
 use crate::uri::v2::PjParam;
 use crate::ImplementationError;
 
+#[cfg(feature = "v2-std")]
 fn replay_events(
     mut logs: impl Iterator<Item = SessionEvent>,
 ) -> Result<(SendSession, Vec<SessionEvent>), ReplayError<SendSession, SessionEvent>> {
@@ -21,19 +32,24 @@ fn replay_events(
     Ok((sender, session_events))
 }
 
+#[cfg(feature = "v2-std")]
 fn construct_history(
     session_events: Vec<SessionEvent>,
 ) -> Result<SessionHistory, ReplayError<SendSession, SessionEvent>> {
     let history = SessionHistory::new(session_events);
-    let pj_param = history.pj_param();
-    if pj_param.expiration().elapsed() {
-        return Err(InternalReplayError::Expired(pj_param.expiration()).into());
+    #[cfg(feature = "std")]
+    {
+        let pj_param = history.pj_param();
+        if pj_param.expiration().elapsed() {
+            return Err(InternalReplayError::Expired(pj_param.expiration()).into());
+        }
     }
     Ok(history)
 }
 
 /// Replay a sender event log to get the sender in its current state [SendSession]
 /// and a session history [SessionHistory]
+#[cfg(feature = "v2-std")]
 pub fn replay_event_log<P>(
     persister: &P,
 ) -> Result<(SendSession, SessionHistory), ReplayError<SendSession, SessionEvent>>
@@ -61,6 +77,8 @@ where
 }
 
 /// Async version of [replay_event_log]
+#[cfg(feature = "v2-std")]
+#[allow(dead_code)]
 pub async fn replay_event_log_async<P>(
     persister: &P,
 ) -> Result<(SendSession, SessionHistory), ReplayError<SendSession, SessionEvent>>
@@ -73,8 +91,7 @@ where
         .load()
         .await
         .map_err(|e| InternalReplayError::PersistenceFailure(ImplementationError::new(e)))?;
-
-    let (sender, session_events) = match replay_events(logs.map(|e| e.into())) {
+    let (sender, session_events) = match replay_events(logs.map(|e: P::SessionEvent| e.into())) {
         Ok(r) => r,
         Err(e) => {
             persister.close().await.map_err(|ce| {
@@ -83,16 +100,17 @@ where
             return Err(e);
         }
     };
-
     let history = construct_history(session_events)?;
     Ok((sender, history))
 }
 
+#[cfg(feature = "v2-std")]
 #[derive(Debug, Clone)]
 pub struct SessionHistory {
     events: Vec<SessionEvent>,
 }
 
+#[cfg(feature = "v2-std")]
 impl SessionHistory {
     pub(crate) fn new(events: Vec<SessionEvent>) -> Self {
         debug_assert!(!events.is_empty(), "Session event log must contain at least one event");
@@ -123,8 +141,12 @@ impl SessionHistory {
     }
 
     pub fn status(&self) -> SessionStatus {
-        if self.pj_param().expiration().elapsed() {
-            return SessionStatus::Expired;
+        #[cfg(feature = "std")]
+        {
+            let pj_param = self.pj_param();
+            if pj_param.expiration().elapsed() {
+                return SessionStatus::Expired;
+            }
         }
 
         match self.events.last() {
@@ -147,6 +169,7 @@ pub enum SessionStatus {
     Completed,
 }
 
+#[cfg(feature = "v2-std")]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SessionEvent {
     /// Sender was created with session data
@@ -178,7 +201,7 @@ mod tests {
     use super::*;
     use crate::core::Url;
     use crate::output_substitution::OutputSubstitution;
-    use crate::persist::{InMemoryAsyncPersister, InMemoryPersister};
+    use crate::persist::test_utils::{InMemoryAsyncTestPersister, InMemoryPersister};
     use crate::send::v2::{Sender, SenderBuilder, SessionContext, WithReplyKey};
     use crate::send::PsbtContext;
     use crate::time::Time;
@@ -296,7 +319,7 @@ mod tests {
     }
 
     async fn run_session_history_test_async(test: &SessionHistoryTest) {
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         for event in test.events.clone() {
             persister.save_event(event).await.expect("In memory persister shouldn't fail");
         }
@@ -428,26 +451,26 @@ mod tests {
         persister
             .save_event(SessionEvent::PostedOriginalPsbt())
             .expect("in memory persister save should not fail");
-        assert!(!persister.inner.lock().expect("session read should succeed").is_closed);
+        assert!(!persister.inner.read().expect("session read should succeed").is_closed);
         let err = replay_event_log(&persister).expect_err("session replay should be fail");
         let expected_err: ReplayError<SendSession, SessionEvent> =
             InternalReplayError::InvalidEvent(Box::new(SessionEvent::PostedOriginalPsbt()), None)
                 .into();
         assert_eq!(err.to_string(), expected_err.to_string());
-        assert!(persister.inner.lock().expect("lock should not be poisoned").is_closed);
+        assert!(persister.inner.read().expect("lock should not be poisoned").is_closed);
 
-        let persister = InMemoryAsyncPersister::<SessionEvent>::default();
+        let persister = InMemoryAsyncTestPersister::<SessionEvent>::default();
         persister
             .save_event(SessionEvent::PostedOriginalPsbt())
             .await
             .expect("in memory async persister save should not fail");
-        assert!(!persister.inner.lock().await.is_closed);
+        assert!(!persister.inner.read().await.is_closed);
         let err =
             replay_event_log_async(&persister).await.expect_err("session replay should be fail");
         let expected_err: ReplayError<SendSession, SessionEvent> =
             InternalReplayError::InvalidEvent(Box::new(SessionEvent::PostedOriginalPsbt()), None)
                 .into();
         assert_eq!(err.to_string(), expected_err.to_string());
-        assert!(persister.inner.lock().await.is_closed);
+        assert!(persister.inner.read().await.is_closed);
     }
 }

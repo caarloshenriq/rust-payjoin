@@ -1,3 +1,4 @@
+#![cfg(all(feature = "std", feature = "v1"))]
 mod integration {
     use std::collections::HashMap;
     use std::str::FromStr;

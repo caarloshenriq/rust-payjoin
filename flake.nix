@@ -101,6 +101,7 @@
                 ]
                 ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
                   "x86_64-unknown-linux-gnu"
+                  "thumbv7em-none-eabihf"
                 ];
               }
             )
@@ -300,6 +301,7 @@
                 # Version must match the wasm-bindgen crate locked in
                 # payjoin-ffi/javascript/rust_modules/wasm/Cargo.lock.
                 wasm-bindgen-cli_0_2_108
+                gcc-arm-embedded
               ]
               ++ pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
                 cargo-llvm-cov
@@ -310,6 +312,7 @@
             DOTNET_CLI_TELEMETRY_OPTOUT = "1";
             CC_wasm32_unknown_unknown = "${pkgs.llvmPackages.clang-unwrapped}/bin/clang";
             AR_wasm32_unknown_unknown = "${pkgs.llvmPackages.bintools-unwrapped}/bin/llvm-ar";
+            CC_thumbv7em_none_eabihf = "arm-none-eabi-gcc";
           }
         ) craneLibVersions;
 

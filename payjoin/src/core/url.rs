@@ -8,8 +8,13 @@
 //! The primary entry point is [`Url`], with parse errors surfaced through
 //! [`ParseError`] (re-exported at the crate root as `UrlParseError`).
 
-use core::fmt;
+use alloc::string::String;
+use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::str::FromStr;
+use core::{error, fmt};
+
+use crate::alloc::string::ToString;
 
 /// A parsed URL.
 ///
@@ -168,7 +173,7 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl std::error::Error for ParseError {}
+impl error::Error for ParseError {}
 
 impl FromStr for Url {
     type Err = ParseError;
@@ -186,15 +191,18 @@ impl Url {
         let (_rest, host, port, path, query, fragment) =
             if let Some(rest) = rest.strip_prefix("://") {
                 let (rest, host) = parse_host(rest)?;
-                let (rest, port) = parse_port(rest).unwrap_or((rest, None));
-                let (path, query, fragment) = parse_path_query_fragment(rest);
-                (rest, host, port, path, query, fragment)
+                let (after_port, port) = parse_port(rest).unwrap_or((rest, None));
+
+                if port.is_none() && rest.starts_with(':') {
+                    return Err(ParseError::InvalidPort);
+                }
+
+                let (path, query, fragment) = parse_path_query_fragment(after_port);
+                (after_port, host, port, path, query, fragment)
             } else {
                 return Err(ParseError::InvalidFormat);
             };
-
         let path = if path.is_empty() { "/".to_string() } else { path };
-
         let mut url = Url { raw: String::new(), scheme, host, port, path, query, fragment };
         url.rebuild_raw();
         Ok(url)
@@ -272,6 +280,7 @@ impl Url {
     pub fn query_pairs_mut(&mut self) -> UrlQueryPairs<'_> { UrlQueryPairs { url: self } }
 
     /// Return parsed query pairs as a Vec of Strings
+    #[cfg(feature = "std")]
     pub fn query_pairs(&self) -> Vec<(String, String)> {
         let Some(query) = &self.query else { return vec![] };
         query
@@ -297,26 +306,28 @@ impl Url {
     ///   `.` and `..` dot-segments, and the query and fragment are cleared.
     pub fn join(&self, segment: &str) -> Result<Url, ParseError> {
         // If the segment is a full URL (scheme://...), parse it independently.
-        // Only treat it as a full URL if no / appears before :// (i.e. in scheme position).
         if let Some(pos) = segment.find("://") {
             if !segment[..pos].contains('/') {
                 return Url::parse(segment);
             }
         }
 
-        let mut new_url = self.clone();
+        // Extract path/query/fragment from segment before processing
+        let (path_part, query, fragment) = parse_path_query_fragment(segment);
 
-        if segment.starts_with('/') {
-            // Absolute path reference: replace entire path, clear query/fragment
-            new_url.path = segment.to_string();
-            new_url.query = None;
-            new_url.fragment = None;
-        } else {
+        let mut new_url = self.clone();
+        new_url.query = query;
+        new_url.fragment = fragment;
+
+        if path_part.starts_with('/') {
+            // Absolute path reference: replace entire path
+            new_url.path = path_part.to_string();
+        } else if !path_part.is_empty() {
             // Relative reference: merge per RFC 3986
-            // Remove everything after the last '/' in the base path, then append segment
+            // (if path_part is empty, segment was only query/fragment — keep base path as-is)
             let base_path =
                 if let Some(pos) = new_url.path.rfind('/') { &new_url.path[..=pos] } else { "/" };
-            let merged = format!("{}{}", base_path, segment);
+            let merged = format!("{}{}", base_path, path_part);
 
             // Resolve dot segments
             let mut output_segments: Vec<&str> = Vec::new();
@@ -333,8 +344,6 @@ impl Url {
             if !new_url.path.starts_with('/') {
                 new_url.path.insert(0, '/');
             }
-            new_url.query = None;
-            new_url.fragment = None;
         }
 
         new_url.rebuild_raw();
@@ -742,5 +751,46 @@ mod tests {
     #[test]
     fn test_parse_ipv6_too_many_groups_rejected() {
         assert!(matches!(Url::parse("http://[1:2:3:4::5:6:7:8]/"), Err(ParseError::InvalidHost)));
+    }
+
+    #[test]
+    fn test_join_query_only() {
+        let base = Url::parse("https://example.com/path").unwrap();
+        assert_eq!(base.join("?v=2").unwrap().as_str(), "https://example.com/path?v=2");
+    }
+
+    #[test]
+    fn test_join_fragment_only() {
+        let base = Url::parse("https://example.com/path").unwrap();
+        assert_eq!(base.join("#frag").unwrap().as_str(), "https://example.com/path#frag");
+    }
+
+    #[test]
+    fn test_join_relative_with_query_and_fragment() {
+        let base = Url::parse("https://example.com/path").unwrap();
+        assert_eq!(
+            base.join("next?x=1#frag").unwrap().as_str(),
+            "https://example.com/next?x=1#frag"
+        );
+    }
+
+    #[test]
+    fn test_parse_trailing_colon_no_port() {
+        assert!(Url::parse("http://example.com:").is_err());
+    }
+
+    #[test]
+    fn test_parse_trailing_colon_with_path() {
+        assert!(Url::parse("http://example.com:/path").is_err());
+    }
+
+    #[test]
+    fn test_parse_ipv6_trailing_colon() {
+        assert!(Url::parse("http://[::1]:").is_err());
+    }
+
+    #[test]
+    fn test_parse_valid_port_still_works() {
+        assert!(Url::parse("http://example.com:8080").is_ok());
     }
 }
